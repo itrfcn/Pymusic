@@ -1,0 +1,1337 @@
+<div class="music-discovery">
+    <!-- 顶部Banner轮播 -->
+    <div class="banner-carousel">
+        <div class="carousel-track">
+            <div class="carousel-slide active" style="background-image: url('https://picsum.photos/id/1035/1200/400')">
+                <div class="slide-content">
+                    <h2>夏日音乐盛宴</h2>
+                    <p>精选夏日热门单曲，陪你度过炎炎夏日</p>
+                </div>
+            </div>
+            <div class="carousel-slide" style="background-image: url('https://picsum.photos/id/1072/1200/400')">
+                <div class="slide-content">
+                    <h2>经典摇滚回顾</h2>
+                    <p>那些影响一代人的摇滚传奇</p>
+                </div>
+            </div>
+            <div class="carousel-slide" style="background-image: url('https://picsum.photos/id/1082/1200/400')">
+                <div class="slide-content">
+                    <h2>治愈系民谣</h2>
+                    <p>用温柔旋律抚平你的疲惫</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 轮播控制 -->
+        <button class="carousel-control prev"></button>
+        <button class="carousel-control next"></button>
+        <div class="carousel-indicators">
+            <span class="indicator active" data-index="0"></span>
+            <span class="indicator" data-index="1"></span>
+            <span class="indicator" data-index="2"></span>
+        </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="discovery-content">
+
+        <!-- 分类标签 (将动态生成) -->
+        <div class="music-categories">
+            <!-- 初始显示加载状态 -->
+            <div class="category-loading">加载分类中...</div>
+        </div>
+
+        <!-- 歌单网格 -->
+        <div class="playlist-grid" id="hot-playlists">
+            <!-- 歌单将动态插入 -->
+        </div>
+
+        <!-- 加载更多按钮 -->
+        <div class="load-more-container">
+            <button id="load-more">加载更多</button>
+        </div>
+    </div>
+
+    <!-- 歌单详情弹窗 -->
+    <div id="playlist-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">歌单详情</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="playlist-detail">
+                    <img id="detail-cover" src="" alt="歌单封面" class="detail-cover">
+                    <div class="detail-info">
+                        <h2 id="detail-name"></h2>
+                        <p>创建者: <span id="detail-creator"></span></p>
+                        <p>播放量: <span id="detail-playcount"></span></p>
+                        <p>歌曲数量: <span id="detail-songcount"></span></p>
+                    </div>
+                </div>
+                <h4>歌曲列表</h4>
+                <ul id="song-list" class="song-list">
+                    <!-- 歌曲列表将动态插入 -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 基础样式 - 黑色系主题 */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    html, body {
+        height: 100%;
+        background-color: #0a0a0a;
+        color: #ffffff;
+        overflow-x: hidden;
+    }
+
+    .music-discovery {
+        width: 100%;
+        min-height: 100vh;
+        padding: 0 15px 30px;
+        position: relative;
+        background-color: #0a0a0a;
+    }
+
+    /* 轮播Banner样式 */
+    .banner-carousel {
+        position: relative;
+        width: 100%;
+        height: 30vh;
+        min-height: 200px;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 0 0 25px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .carousel-track {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .carousel-slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+    }
+
+    .carousel-slide.active {
+        opacity: 1;
+        z-index: 1;
+    }
+
+    .slide-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 25px 20px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+        color: white;
+    }
+
+    .slide-content h2 {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .slide-content p {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 12px;
+    }
+
+    /* 轮播控制按钮 */
+    .carousel-control {
+        position: absolute;
+        top: 50%;
+        width: 40px;
+        height: 40px;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.6);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 2;
+        transition: background 0.3s ease;
+    }
+
+    .carousel-control:hover {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    .carousel-control.prev {
+        left: 15px;
+    }
+
+    .carousel-control.next {
+        right: 15px;
+    }
+
+    .carousel-control.prev::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 55%;
+        width: 12px;
+        height: 12px;
+        border-top: 2px solid white;
+        border-left: 2px solid white;
+        transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    .carousel-control.next::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 45%;
+        width: 12px;
+        height: 12px;
+        border-top: 2px solid white;
+        border-right: 2px solid white;
+        transform: translate(-50%, -50%) rotate(45deg);
+    }
+
+    /* 轮播指示器 */
+    .carousel-indicators {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        z-index: 2;
+    }
+
+    .indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .indicator.active {
+        width: 24px;
+        border-radius: 4px;
+        background: white;
+    }
+
+    /* 内容区域样式 */
+    .discovery-content h1 {
+        font-size: 1.8rem;
+        color: #ffffff;
+        margin-bottom: 10px;
+    }
+
+    .discovery-content p {
+        color: #b0b0b0;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+
+    /* 分类标签 */
+    .music-categories {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+        min-height: 34px; /* 确保加载状态时有足够高度 */
+    }
+
+    .category-loading {
+        color: #888;
+        padding: 6px 16px;
+        font-size: 0.9rem;
+    }
+
+    .music-categories::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .music-categories::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 2px;
+    }
+
+    .category {
+        padding: 6px 16px;
+        background: #1a1a1a;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: #b0b0b0;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .category.active {
+        background: #333;
+        color: white;
+    }
+
+    .category:hover:not(.active) {
+        background: #2a2a2a;
+    }
+
+    /* 歌单网格 */
+    .discovery-content .playlist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 18px;
+        margin-bottom: 30px;
+    }
+
+    /* 歌单卡片 */
+    .discovery-content .playlist-card {
+        border-radius: 8px;
+        overflow: hidden;
+        background: #1a1a1a;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .discovery-content .playlist-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .discovery-content .playlist-cover {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* 歌单信息 */
+    .discovery-content .playlist-info {
+        padding: 12px 10px 5px;
+    }
+
+    .discovery-content .playlist-name {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #ffffff;
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+
+    .discovery-content .playlist-meta {
+        font-size: 0.8rem;
+        color: #888;
+        display: flex;
+        align-items: center;
+    }
+
+    .playlist-meta .creator {
+        display: flex;
+        align-items: center;
+    }
+
+    .playlist-meta .creator::before {
+        content: "";
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E") no-repeat;
+        background-size: contain;
+        margin-right: 4px;
+    }
+
+    .playlist-meta .play-count {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+    }
+
+    .playlist-meta .play-count::before {
+        content: "";
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M11 5L6 9H2v6h4l5 4V5zm7.5 6c0-2.48-2.02-4.5-4.5-4.5S9 8.52 9 11s2.02 4.5 4.5 4.5 4.5-2.02 4.5-4.5zm0 7c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'/%3E%3C/svg%3E") no-repeat;
+        background-size: contain;
+        margin-right: 4px;
+    }
+
+    /* 加载状态 */
+    .loading {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 0;
+        color: #888;
+        font-size: 0.95rem;
+    }
+
+    .loading .spinner {
+        width: 40px;
+        height: 4px;
+        background: #2a2a2a;
+        border-radius: 2px;
+        margin: 15px auto;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .loading .spinner::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 50%;
+        height: 100%;
+        background: #ff3a3a;
+        border-radius: 2px;
+        animation: loading 1.5s infinite ease-in-out;
+    }
+
+    @keyframes loading {
+        0% {
+            left: -50%;
+        }
+        50% {
+            left: 100%;
+        }
+        100% {
+            left: -50%;
+        }
+    }
+
+    /* 加载更多按钮 */
+    .load-more-container {
+        text-align: center;
+    }
+
+    #load-more {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 8px 24px;
+        border-radius: 20px;
+        color: #b0b0b0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    #load-more:hover {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #fff;
+    }
+
+    #load-more:active {
+        background: #333;
+    }
+
+    #load-more:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    /* 弹窗样式 */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 100;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #1a1a1a;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        /* 隐藏滚动条 - 适用于Chrome、Safari和Opera */
+        -ms-overflow-style: none;  /* 隐藏IE和Edge的滚动条 */
+        scrollbar-width: none;    /* 隐藏Firefox的滚动条 */
+    }
+    
+    /* 隐藏Chrome、Safari和Opera的滚动条 */
+    .modal-content::-webkit-scrollbar {
+        display: none;
+    }
+
+    .modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        font-size: 1.2rem;
+        color: #ffffff;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #888;
+    }
+
+    .close-modal:hover {
+        color: #fff;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .playlist-detail {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .detail-cover {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+
+    .detail-info h2 {
+        margin-bottom: 15px;
+        color: #ffffff;
+    }
+
+    .detail-info p {
+        margin-bottom: 8px;
+        color: #b0b0b0;
+    }
+
+    .song-list {
+        list-style: none;
+    }
+
+    .song-list li {
+        padding: 12px 10px;
+        border-bottom: 1px solid #2a2a2a;
+        display: flex;
+        align-items: center;
+    }
+
+    .song-list li:hover {
+        background: #2a2a2a;
+    }
+
+    .song-list li .song-index {
+        width: 24px;
+        text-align: center;
+        color: #888;
+        margin-right: 15px;
+    }
+
+    .song-list li .song-info {
+        flex: 1;
+    }
+
+    .song-list li .song-name {
+        font-weight: 500;
+        margin-bottom: 3px;
+        color: #fff;
+    }
+
+    .song-list li .song-artist {
+        font-size: 0.85rem;
+        color: #888;
+    }
+
+    .song-list li .song-duration {
+        color: #888;
+        font-size: 0.85rem;
+    }
+
+    /* 错误提示样式 */
+    .error-message, .category-error, .no-results {
+        color: #ff4d4f;
+        text-align: center;
+        padding: 20px;
+        font-size: 0.95rem;
+    }
+
+    .retry-button {
+        background: #ff4d4f;
+        color: white;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 8px;
+        transition: background 0.2s;
+    }
+
+    .retry-button:hover {
+        background: #ff7875;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 767px) {
+        .playlist-detail {
+            flex-direction: column;
+        }
+
+        .detail-cover {
+            width: 100%;
+            max-width: 200px;
+        }
+    }
+
+    @media (min-width: 480px) {
+        .banner-carousel {
+            height: 35vh;
+        }
+
+        .playlist-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        }
+    }
+
+    @media (min-width: 768px) {
+        .banner-carousel {
+            height: 40vh;
+        }
+
+        .slide-content h2 {
+            font-size: 1.8rem;
+        }
+
+        .slide-content p {
+            font-size: 1rem;
+        }
+
+        .discovery-content h1 {
+            font-size: 2.2rem;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .banner-carousel {
+            height: 50vh;
+        }
+
+        .playlist-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 24px;
+        }
+    }
+</style>
+
+<script>
+    // 当文档加载完成后执行
+    document.addEventListener('DOMContentLoaded', function () {
+        // 数据管理对象 - 集中存储应用状态
+        const dataStore = {
+            allPlaylists: [],      // 所有歌单数据
+            allCategories: new Set(), // 所有分类集合
+            displayedPlaylists: [],  // 当前显示的歌单
+            isLoading: false,       // 主加载状态
+            isLoadingMore: false,   // 加载更多状态
+            hasMore: true           // 是否有更多数据
+        };
+
+        // DOM元素缓存 - 避免重复DOM查询
+        const elements = {
+            categoryContainer: document.querySelector('.music-categories'),
+            playlistContainer: document.getElementById('hot-playlists'),
+            loadMoreBtn: document.getElementById('load-more'),
+            modal: document.getElementById('playlist-modal'),
+            closeModal: document.querySelector('.close-modal'),
+            modalTitle: document.getElementById('modal-title'),
+            detailCover: document.getElementById('detail-cover'),
+            detailName: document.getElementById('detail-name'),
+            detailCreator: document.getElementById('detail-creator'),
+            detailPlaycount: document.getElementById('detail-playcount'),
+            detailSongcount: document.getElementById('detail-songcount'),
+            songList: document.getElementById('song-list')
+        };
+
+        // API请求工具函数 - 封装fetch请求逻辑
+        async function fetchData(url, options = {}) {
+            try {
+                // 发起fetch请求，设置超时和头部信息
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    timeout: 10000 // 10秒超时
+                });
+
+                // 检查响应状态
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+
+                // 返回JSON数据
+                return await response.json();
+            } catch (error) {
+                // 错误处理和日志记录
+                console.error(`请求${url}失败:`, error);
+                throw error; // 向上抛出错误，让调用者处理
+            }
+        }
+
+        // 处理歌单数据 - 同时提取分类和处理歌单信息
+        function processPlaylistData(data) {
+            if (!data || !data.playlists) {
+                console.error('获取歌单数据失败:', data);
+                showCategoryError();
+                showError('加载歌单失败，请稍后重试。', true);
+                return false;
+            }
+            
+            // 提取分类信息
+            const categoriesSet = new Set();
+            data.playlists.forEach(playlist => {
+                if (playlist.tags && playlist.tags.length > 0) {
+                    categoriesSet.add(playlist.tags[0]);
+                }
+            });
+            
+            // 转换为分类数组格式
+            const categories = Array.from(categoriesSet).map(id => ({
+                id: id,
+                name: id
+            }));
+            
+            // 更新分类数据到数据存储
+            categories.forEach(category => {
+                dataStore.allCategories.add(category.id);
+            });
+            
+            // 生成分类标签DOM
+            generateCategoryTags(categories);
+            
+            // 处理歌单数据
+            dataStore.allPlaylists = data.playlists.map(playlist => ({
+                id: playlist.id,
+                name: playlist.name,
+                cover: playlist.coverImgUrl || `https://picsum.photos/300/300?random=${playlist.id}`,
+                playCount: playlist.playCount || 0,
+                creator: playlist.creator ? playlist.creator.nickname : '未知创作者',
+                tags: playlist.tags || [],
+                songCount: playlist.trackCount || 0,
+                songs: []
+            }));
+            
+            // 设置显示的歌单为所有歌单
+            dataStore.displayedPlaylists = [...dataStore.allPlaylists];
+            
+            // 渲染歌单列表
+            renderPlaylists(dataStore.displayedPlaylists);
+            
+            return true;
+        }
+        
+        // 获取热门歌单数据 - 从API获取并同时处理分类和歌单数据
+        async function fetchHotPlaylists() {
+            // 防止重复加载
+            if (dataStore.isLoading) return;
+
+            // 更新加载状态
+            dataStore.isLoading = true;
+            showLoading();
+
+            try {
+                // 请求热门歌单数据
+                const data = await fetchData('/music/hot_playlists');
+                processPlaylistData(data);
+            } catch (error) {
+                console.error('获取歌单数据时出错:', error);
+                showCategoryError();
+                showError('加载歌单失败，请稍后重试。', true);
+            } finally {
+                // 无论成功失败都更新加载状态
+                dataStore.isLoading = false;
+            }
+        }
+
+        // 显示分类加载错误
+        function showCategoryError() {
+            // 清空容器并显示错误信息
+            elements.categoryContainer.innerHTML = `
+                <div class="category-error">
+                    加载分类失败
+                    <button class="retry-button" id="retry-categories">重试</button>
+                </div>
+            `;
+
+            // 添加重试事件监听
+            const retryBtn = document.getElementById('retry-categories');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    elements.categoryContainer.innerHTML = '<div class="category-loading">加载分类中...</div>';
+                    fetchCategories();
+                });
+            }
+        }
+
+        // 显示歌单加载错误
+        function showError(message, showRetry = false) {
+            // 构建错误信息HTML
+            let errorHtml = `<p class="error-message">${message}</p>`;
+            if (showRetry) {
+                errorHtml += '<button class="retry-button" id="retry-playlists">重试</button>';
+            }
+            
+            // 更新容器内容
+            elements.playlistContainer.innerHTML = errorHtml;
+
+            // 添加重试事件监听
+            const retryBtn = document.getElementById('retry-playlists');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', fetchHotPlaylists);
+            }
+        }
+
+        // 生成分类标签 - 创建并渲染分类标签DOM元素
+        function generateCategoryTags(categories) {
+            // 清空容器
+            elements.categoryContainer.innerHTML = '';
+
+            // 添加"全部"分类
+            const allCategory = document.createElement('span');
+            allCategory.className = 'category active';
+            allCategory.dataset.category = 'all';
+            allCategory.textContent = '全部';
+            elements.categoryContainer.appendChild(allCategory);
+
+            // 添加从接口获取的分类
+            categories.forEach(category => {
+                // 跳过重复的"all"分类
+                if (category.id === 'all') return;
+
+                // 创建分类元素
+                const categoryElement = document.createElement('span');
+                categoryElement.className = 'category';
+                categoryElement.dataset.category = category.id;
+                categoryElement.textContent = category.name || category.id;
+
+                // 添加到容器
+                elements.categoryContainer.appendChild(categoryElement);
+            });
+
+            // 为所有分类添加点击事件
+            attachCategoryEvents();
+        }
+
+        // 为分类标签添加点击事件
+        function attachCategoryEvents() {
+            // 获取所有分类标签
+            const categories = elements.categoryContainer.querySelectorAll('.category');
+            
+            // 遍历添加事件监听
+            categories.forEach(cat => {
+                cat.addEventListener('click', function () {
+                    // 防止重复点击
+                    if (this.classList.contains('active')) return;
+
+                    // 更新活跃状态
+                    categories.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // 筛选对应分类的歌单
+                    const category = this.dataset.category;
+                    filterPlaylistsByCategory(category);
+                });
+            });
+        }
+
+        // 根据分类筛选歌单
+        function filterPlaylistsByCategory(category) {
+            // 显示加载状态
+            showLoading();
+
+            // 使用setTimeout模拟筛选延迟，提升感知性能
+            setTimeout(() => {
+                // 根据选择的分类筛选歌单
+                if (category === 'all') {
+                    dataStore.displayedPlaylists = [...dataStore.allPlaylists];
+                } else {
+                    // 根据歌单的tags第一个元素进行筛选
+                    dataStore.displayedPlaylists = dataStore.allPlaylists.filter(
+                        playlist => playlist.tags && playlist.tags.length > 0 && 
+                                  playlist.tags[0] === category
+                    );
+                }
+                
+                // 渲染筛选后的歌单
+                renderPlaylists(dataStore.displayedPlaylists);
+            }, 200);
+        }
+
+        // 格式化播放次数 - 将数字格式化为易读的形式
+        function formatPlayCount(count) {
+            // 确保输入是数字类型
+            if (typeof count !== 'number') count = parseInt(count) || 0;
+
+            // 根据数量级格式化
+            if (count >= 10000000) {
+                return (count / 10000000).toFixed(1) + '千万';
+            } else if (count >= 10000) {
+                return (count / 10000).toFixed(1) + '万';
+            }
+            return count.toString();
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            elements.playlistContainer.innerHTML = `
+                <div class="loading">
+                    加载中
+                    <div class="spinner"></div>
+                </div>
+            `;
+        }
+
+        // 渲染歌单列表
+        function renderPlaylists(playlists) {
+            // 清空容器
+            elements.playlistContainer.innerHTML = '';
+
+            // 处理空状态
+            if (playlists.length === 0) {
+                elements.playlistContainer.innerHTML = '<p class="no-results">没有找到符合条件的歌单</p>';
+                return;
+            }
+
+            // 遍历渲染每个歌单
+            playlists.forEach(playlist => {
+                // 创建歌单卡片
+                const card = document.createElement('div');
+                card.className = 'playlist-card';
+                card.dataset.id = playlist.id;
+
+                // 设置卡片内容
+                card.innerHTML = `
+                    <img src="${playlist.cover}" alt="${playlist.name}" class="playlist-cover" loading="lazy">
+                    <div class="playlist-info">
+                        <div class="playlist-name">${playlist.name}</div>
+                        <div class="playlist-meta">
+                            <span class="creator">${playlist.creator}</span>
+                            <span class="play-count">${formatPlayCount(playlist.playCount)}</span>
+                        </div>
+                    </div>
+                `;
+
+                // 添加点击事件，查看歌单详情
+                card.addEventListener('click', () => {
+                    showPlaylistDetail(playlist.id);
+                });
+
+                // 添加到容器
+                elements.playlistContainer.appendChild(card);
+            });
+        }
+
+        // 轮播图功能初始化
+        function initCarousel() {
+            // 获取轮播相关元素
+            const slides = document.querySelectorAll('.carousel-slide');
+            const indicators = document.querySelectorAll('.indicator');
+            const prevBtn = document.querySelector('.carousel-control.prev');
+            const nextBtn = document.querySelector('.carousel-control.next');
+            let currentSlide = 0; // 当前幻灯片索引
+            let slideInterval; // 轮播定时器
+
+            // 启动轮播
+            function startSlide() {
+                slideInterval = setInterval(nextSlide, 5000);
+            }
+
+            // 切换到指定幻灯片
+            function goToSlide(index) {
+                // 移除所有活跃状态
+                slides.forEach(slide => slide.classList.remove('active'));
+                indicators.forEach(ind => ind.classList.remove('active'));
+
+                // 设置指定索引的元素为活跃状态
+                slides[index].classList.add('active');
+                indicators[index].classList.add('active');
+                currentSlide = index;
+            }
+
+            // 切换到下一张幻灯片
+            function nextSlide() {
+                currentSlide = (currentSlide + 1) % slides.length;
+                goToSlide(currentSlide);
+            }
+
+            // 切换到上一张幻灯片
+            function prevSlide() {
+                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                goToSlide(currentSlide);
+            }
+
+            // 轮播控制按钮事件监听
+            prevBtn.addEventListener('click', () => {
+                clearInterval(slideInterval);
+                prevSlide();
+                startSlide();
+            });
+
+            nextBtn.addEventListener('click', () => {
+                clearInterval(slideInterval);
+                nextSlide();
+                startSlide();
+            });
+
+            // 指示器点击事件
+            indicators.forEach(indicator => {
+                indicator.addEventListener('click', () => {
+                    clearInterval(slideInterval);
+                    goToSlide(parseInt(indicator.dataset.index));
+                    startSlide();
+                });
+            });
+
+            // 鼠标悬停暂停轮播
+            const carousel = document.querySelector('.banner-carousel');
+            carousel.addEventListener('mouseenter', () => clearInterval(slideInterval));
+            carousel.addEventListener('mouseleave', startSlide);
+
+            // 启动轮播
+            startSlide();
+        }
+
+        // 加载更多功能初始化
+        function initLoadMore() {
+            // 为加载更多按钮添加点击事件
+            elements.loadMoreBtn.addEventListener('click', async function () {
+                // 防止重复加载或无更多数据时点击
+                if (dataStore.isLoadingMore || !dataStore.hasMore) return;
+
+                // 更新加载状态
+                dataStore.isLoadingMore = true;
+                this.innerHTML = '加载中...';
+                this.disabled = true;
+
+                try {
+                    // 模拟API请求延迟
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // 注：由于没有实际的"更多数据"API，这里只是演示逻辑
+                    // 实际应用中应调用分页API获取下一页数据
+                    
+                    // 标记为没有更多数据
+                    dataStore.hasMore = false;
+                    this.innerHTML = '没有更多了';
+                } catch (error) {
+                    // 错误处理
+                    console.error('加载更多失败:', error);
+                    this.innerHTML = '加载失败，重试';
+                    dataStore.isLoadingMore = false;
+                    this.disabled = false;
+                }
+            });
+        }
+
+        // 歌单详情弹窗功能初始化
+        function initModal() {
+            // 关闭按钮点击事件
+            elements.closeModal.addEventListener('click', () => {
+                elements.modal.classList.remove('active');
+            });
+
+            // 点击弹窗外部关闭
+            elements.modal.addEventListener('click', (e) => {
+                if (e.target === elements.modal) {
+                    elements.modal.classList.remove('active');
+                }
+            });
+
+            // 键盘ESC键关闭
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && elements.modal.classList.contains('active')) {
+                    elements.modal.classList.remove('active');
+                }
+            });
+        }
+
+        // 显示歌单详情
+        async function showPlaylistDetail(playlistId) {
+            // 查找歌单数据
+            const playlist = dataStore.allPlaylists.find(p => p.id === playlistId);
+            if (!playlist) return;
+
+            // 更新弹窗基础信息
+            elements.modalTitle.textContent = `歌单详情 - ${playlist.name}`;
+            elements.detailCover.src = playlist.cover;
+            elements.detailCover.alt = playlist.name;
+            elements.detailName.textContent = playlist.name;
+            elements.detailCreator.textContent = playlist.creator;
+            elements.detailPlaycount.textContent = formatPlayCount(playlist.playCount);
+            elements.detailSongcount.textContent = playlist.songCount;
+
+            // 清空歌曲列表并显示加载状态
+            elements.songList.innerHTML = '<div class="loading">加载歌曲列表中...</div>';
+
+            try {
+                // 先检查缓存的歌曲数据
+                if (playlist.songs && playlist.songs.length > 0) {
+                    renderSongs(playlist.songs);
+                } else {
+                    // 通过API获取歌曲列表
+                    const data = await fetchData(`/music/playlist/${playlistId}`);
+
+                    if (data && data.result && data.result.tracks) {
+                        // 缓存歌曲数据
+                        playlist.songs = data.result.tracks;
+                        renderSongs(data.result.tracks);
+                    } else {
+                        elements.songList.innerHTML = '<div class="error">加载歌曲列表失败</div>';
+                    }
+                }
+            } catch (error) {
+                // 错误处理和重试机制
+                console.error('获取歌曲列表时出错:', error);
+                elements.songList.innerHTML = `
+                    <div class="error">
+                        加载歌曲列表出错
+                        <button class="retry-button" onclick="showPlaylistDetail(${playlistId})">重试</button>
+                    </div>
+                `;
+            }
+
+            // 显示弹窗
+            elements.modal.classList.add('active');
+        }
+
+        // 渲染歌曲列表
+        function renderSongs(tracks) {
+            // 清空歌曲列表
+            elements.songList.innerHTML = '';
+
+            // 遍历渲染每首歌曲
+            tracks.forEach((song, index) => {
+                // 格式化时长（毫秒转换为分:秒）
+                const durationMs = song.duration;
+                const minutes = Math.floor(durationMs / 60000);
+                const seconds = Math.floor((durationMs % 60000) / 1000);
+                const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                // 获取艺术家名称，处理可能的空值
+                const artists = song.artists ? 
+                    song.artists.map(artist => artist.name).join('/') : 
+                    '未知艺术家';
+
+                // 创建歌曲项
+                const li = document.createElement('li');
+                li.dataset.songId = song.id;
+                li.dataset.playlistId = song.al ? song.al.id : '';
+                li.className = 'song-item';
+
+                // 设置歌曲项内容
+                li.innerHTML = `
+                    <div class="song-index">${index + 1}</div>
+                    <div class="song-info">
+                        <div class="song-name">${song.name}</div>
+                        <div class="song-artist">${artists}</div>
+                    </div>
+                    <div class="song-duration">${formattedDuration}</div>
+                `;
+
+                // 添加点击播放事件
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // 详细日志记录
+                    console.log('歌曲点击事件触发:', {
+                        songId: song.id,
+                        songName: song.name,
+                        playTrackFromPlaylist: typeof window.playTrackFromPlaylist,
+                        playTrack: typeof window.playTrack,
+                        currentPlaylist: typeof window.currentPlaylist
+                    });
+                    
+                    // 标准化歌曲数据结构，确保与播放器兼容
+                    const normalizedTracks = normalizeTracks(tracks);
+                    const normalizedSong = normalizedTracks[index];
+                    
+                    // 尝试多种播放方法，确保兼容性
+                    playMusicWithFallback(normalizedTracks, index, normalizedSong, li);
+                });
+                
+                // 标准化歌曲数据结构函数
+                function normalizeTracks(tracks) {
+                    return tracks.map(track => {
+                        // 深拷贝以避免修改原始数据
+                        const normalized = JSON.parse(JSON.stringify(track));
+                        
+                        // 确保album字段存在且格式正确
+                        if (!normalized.album && normalized.al) {
+                            // 将al字段转换为标准album格式
+                            normalized.album = {
+                                id: normalized.al.id,
+                                name: normalized.al.name,
+                                picUrl: normalized.al.picUrl || normalized.al.pic || 'https://picsum.photos/56/56?random=1'
+                            };
+                        }
+                        
+                        // 确保artists字段存在且格式正确
+                        if (!normalized.artists && normalized.ar) {
+                            // 将ar字段转换为标准artists格式
+                            normalized.artists = normalized.ar.map(artist => ({
+                                id: artist.id,
+                                name: artist.name
+                            }));
+                        }
+                        
+                        // 确保必要字段都存在
+                        normalized.id = normalized.id || Math.random().toString(36).substr(2, 9);
+                        normalized.name = normalized.name || '未知歌曲';
+                        normalized.duration = normalized.duration || 0;
+                        
+                        return normalized;
+                    });
+                }
+                
+                // 多层回退的播放函数
+                function playMusicWithFallback(tracks, index, song, element) {
+                    // 方案1: 使用标准的播放列表播放方法
+                    if (typeof window.playTrackFromPlaylist === 'function') {
+                        try {
+                            console.log('尝试方案1: 调用window.playTrackFromPlaylist');
+                            window.playTrackFromPlaylist(tracks, index);
+                            console.log('方案1执行成功');
+                            updateUIFeedback(element, true);
+                            return true;
+                        } catch (error) {
+                            console.error('方案1失败:', error);
+                        }
+                    }
+                    
+                    // 方案2: 手动设置播放列表并调用播放函数
+                    if (typeof window.playTrack === 'function' && typeof window.currentPlaylist !== 'undefined') {
+                        try {
+                            console.log('尝试方案2: 手动设置播放列表并调用playTrack');
+                            window.currentPlaylist = tracks;
+                            window.playTrack(index);
+                            console.log('方案2执行成功');
+                            updateUIFeedback(element, true);
+                            return true;
+                        } catch (error) {
+                            console.error('方案2失败:', error);
+                        }
+                    }
+                    
+                    // 方案3: 直接尝试播放单个歌曲（不依赖完整播放列表）
+                    if (typeof window.playSingleTrack === 'function') {
+                        try {
+                            console.log('尝试方案3: 调用playSingleTrack');
+                            window.playSingleTrack(song);
+                            console.log('方案3执行成功');
+                            updateUIFeedback(element, true);
+                            return true;
+                        } catch (error) {
+                            console.error('方案3失败:', error);
+                        }
+                    }
+                    
+                    // 所有方案都失败，提供UI反馈
+                    console.warn('所有播放方案都失败');
+                    updateUIFeedback(element, false);
+                    
+                    // 可以考虑通过模拟事件来触发播放器
+                    try {
+                        console.log('尝试方案4: 模拟触发播放事件');
+                        // 创建并分发一个自定义事件
+                        const playEvent = new CustomEvent('customPlayTrack', {
+                            detail: { tracks: tracks, index: index, song: song },
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        document.dispatchEvent(playEvent);
+                    } catch (error) {
+                        console.error('方案4失败:', error);
+                    }
+                    
+                    return false;
+                }
+                
+                // 更新UI反馈
+                function updateUIFeedback(element, success) {
+                    // 添加视觉反馈
+                    element.classList.add(success ? 'playing' : 'play-error');
+                    
+                    // 添加动画效果
+                    element.style.transition = 'background-color 0.3s ease';
+                    element.style.backgroundColor = success ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 77, 79, 0.1)';
+                    
+                    // 短暂延迟后恢复原始样式
+                    setTimeout(() => {
+                        element.classList.remove('playing', 'play-error');
+                        element.style.backgroundColor = '';
+                    }, 200);
+                }
+
+                // 添加到歌曲列表
+                elements.songList.appendChild(li);
+            });
+        }
+
+        // 暴露showPlaylistDetail方法给全局，用于重试按钮调用
+        window.showPlaylistDetail = showPlaylistDetail;
+
+        // 初始化流程
+        function init() {
+            // 显示初始加载状态
+            showLoading();
+            
+            // 只加载一次热门歌单数据，同时处理分类和歌单信息
+            fetchHotPlaylists();
+
+            // 初始化其他功能模块
+            initCarousel();
+            initLoadMore();
+            initModal();
+        }
+
+        // 启动应用
+        init();
+    });
+</script>

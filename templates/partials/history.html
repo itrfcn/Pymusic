@@ -1,0 +1,1088 @@
+<style>
+    /* 暗黑风格样式 */
+    .history-page {
+        background-color: #121212;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding: 20px;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #333;
+    }
+    
+    .page-header h1 {
+        color: #ffffff;
+        font-size: 2rem;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    
+    .page-header p {
+        color: #b0b0b0;
+        font-size: 1rem;
+    }
+    
+    .history-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .loading,
+    .no-history {
+        text-align: center;
+        padding: 60px 20px;
+        color: #b0b0b0;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.5s ease forwards;
+    }
+    
+    /* 加载动画 */
+    .loading::after {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-left: 10px;
+        border: 2px solid #333;
+        border-radius: 50%;
+        border-top-color: #1db954;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    @keyframes fadeInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .no-history .btn-primary {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #1db954;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
+    }
+    
+    .no-history .btn-primary:hover {
+        background-color: #1aa34a;
+    }
+    
+    .history-list {
+        background-color: #181818;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.5s ease forwards 0.2s;
+    }
+    
+    /* 列表布局样式 */
+    .music-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .music-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px;
+        background-color: #282828;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .music-item:hover {
+        background-color: #333;
+        transform: translateX(5px);
+    }
+    
+    .music-item .song-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .music-item .song-cover {
+        margin-right: 15px;
+        position: relative;
+    }
+    
+    .music-item .song-cover img {
+        width: 60px;
+        height: 60px;
+        border-radius: 6px;
+        object-fit: cover;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+    }
+    
+    .music-item:hover .song-cover img {
+        transform: scale(1.05);
+    }
+    
+    .music-item .song-details {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .music-item .song-name {
+        color: #ffffff;
+        font-weight: 500;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 1rem;
+    }
+    
+    .music-item .song-artist {
+        color: #b0b0b0;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .music-item .item-content {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        gap: 15px;
+    }
+    
+    .music-item .item-rank {
+        color: #727272;
+        font-size: 0.9rem;
+        width: 30px;
+        text-align: center;
+    }
+    
+    .music-item .item-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+    
+    .music-item .play-time {
+        color: #727272;
+        font-size: 0.9rem;
+        margin-right: 15px;
+        min-width: 80px;
+        text-align: right;
+    }
+    
+    .music-item .action {
+        display: flex;
+        align-items: center;
+    }
+    
+    .btn-play,
+    .btn-add {
+        background: none;
+        border: none;
+        color: #b0b0b0;
+        cursor: pointer;
+        padding: 8px;
+        margin-left: 10px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-play:hover,
+    .btn-add:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        transform: scale(1.1);
+    }
+    
+    /* 图标样式 */
+    .icon-play::before {
+        content: '▶';
+        font-size: 14px;
+        margin-left: 2px;
+    }
+    
+    .icon-add::before {
+        content: '+';
+        font-size: 16px;
+        font-weight: bold;
+    }
+    
+    /* 错误项样式 */
+    .music-item.error-item {
+        color: #ff4444;
+        justify-content: center;
+        background-color: #332222;
+    }
+    
+    .error-text {
+        font-size: 0.9rem;
+    }
+    
+    /* 骨架屏样式 */
+    .skeleton-container {
+        background-color: #181818;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    .skeleton-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 12px;
+        background-color: #282828;
+        border-radius: 8px;
+    }
+    
+    .skeleton-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .skeleton-cover {
+        width: 60px;
+        height: 60px;
+        border-radius: 6px;
+        background-color: #333;
+        margin-right: 15px;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .skeleton-content {
+        flex: 1;
+    }
+    
+    .skeleton-title {
+        width: 60%;
+        height: 20px;
+        background-color: #333;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .skeleton-subtitle {
+        width: 40%;
+        height: 16px;
+        background-color: #333;
+        border-radius: 4px;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .skeleton-time {
+        width: 80px;
+        height: 16px;
+        background-color: #333;
+        border-radius: 4px;
+        margin-left: auto;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0.6;
+        }
+    }
+    
+    /* 分页样式 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 30px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .page-btn {
+        background-color: #333;
+        color: #b0b0b0;
+        border: none;
+        padding: 8px 12px;
+        margin: 0 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .page-btn:hover:not(:disabled) {
+        background-color: #555;
+        color: #ffffff;
+    }
+    
+    .page-btn.active {
+        background-color: #1db954;
+        color: #ffffff;
+    }
+    
+    .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+        .history-page {
+            padding: 15px;
+        }
+        
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .history-list {
+            padding: 15px;
+        }
+        
+        .music-item {
+            padding: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .music-item .song-cover img {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .music-item .song-name {
+            font-size: 0.95rem;
+        }
+        
+        .music-item .song-artist {
+            font-size: 0.8rem;
+        }
+        
+        .music-item .item-rank {
+            width: 25px;
+            font-size: 0.8rem;
+        }
+        
+        .music-item .play-time {
+            display: none;
+        }
+        
+        .music-item .action {
+            margin-top: 10px;
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .btn-play,
+        .btn-add {
+            margin: 0 10px 0 0;
+            padding: 6px;
+        }
+        
+        .pagination {
+            margin-top: 20px;
+        }
+        
+        .page-btn {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<div class="history-page">
+    <div class="page-header">
+        <h1>{{ session.get('username', '访客') }}的播放历史</h1>
+        <p>记录您的音乐探索之旅</p>
+    </div>
+    
+    <div class="history-content">
+        {% if session.get('username') %}
+            <div class="loading" id="history-loading">
+                <p>正在加载播放历史...</p>
+            </div>
+            
+            <div class="no-history" id="no-history" style="display: none;">
+                <p>您还没有播放历史记录</p>
+                <a href="#" class="btn-primary" onclick="switchView('discover'); return false;">去发现音乐</a>
+            </div>
+            
+            <div class="history-list" id="history-list" style="display: none;">
+                <div class="music-list" id="history-body">
+                    <!-- 这里将通过JavaScript动态加载 -->
+                </div>
+                
+                <div class="pagination" id="pagination">
+                    <!-- 这里将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        {% else %}
+            <div class="not-logged-in" style="text-align: center; padding: 60px 20px; color: #b0b0b0; opacity: 0; transform: translateY(20px); animation: fadeInUp 0.5s ease forwards;">
+                <p style="font-size: 1.2rem; margin-bottom: 20px;">您尚未登录</p>
+                <p style="margin-bottom: 30px;">登录后可以查看您的播放历史记录</p>
+                <a href="/user/login" class="btn-primary" style="display: inline-block; padding: 12px 30px; background-color: #1db954; color: white; border: none; border-radius: 25px; text-decoration: none; font-weight: 600; transition: background-color 0.3s ease;">去登录</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // 列表项淡入动画
+    function animateListItems() {
+        const items = document.querySelectorAll('#history-body .music-item:not(.error-item)');
+        items.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, index * 50);
+        });
+    }
+    
+    // 初始化骨架屏容器
+    function initSkeletonContainer() {
+        // 尝试从DOM中查找现有容器
+        let container = document.querySelector('.skeleton-container');
+        
+        // 如果找不到，创建新的
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'skeleton-container';
+            container.style.display = 'none';
+            
+            // 查找并添加到正确的容器
+            const historyContent = document.querySelector('.history-content');
+            if (historyContent) {
+                // 确保添加到正确位置，在loading、no-history和history-list之前
+                const loading = document.getElementById('history-loading');
+                if (loading && loading.parentNode === historyContent) {
+                    historyContent.insertBefore(container, loading);
+                } else {
+                    historyContent.appendChild(container);
+                }
+            }
+        }
+        
+        // 更新全局引用
+        window.skeletonContainer = container;
+        return container;
+    }
+    
+    // 初始化骨架屏容器
+    initSkeletonContainer();
+    
+    // 显示骨架屏
+    function showSkeleton() {
+        // 确保骨架屏容器存在
+        let container = window.skeletonContainer;
+        if (!container || !container.parentNode) {
+            container = initSkeletonContainer();
+        }
+        
+        if (container) {
+            // 清空现有内容
+            container.innerHTML = '';
+            
+            // 确保容器在DOM中
+            if (!container.parentNode) {
+                const historyContent = document.querySelector('.history-content');
+                if (historyContent) {
+                    const loading = document.getElementById('history-loading');
+                    if (loading && loading.parentNode === historyContent) {
+                        historyContent.insertBefore(container, loading);
+                    } else {
+                        historyContent.appendChild(container);
+                    }
+                }
+            }
+            
+            // 创建10个骨架屏项
+            for (let i = 0; i < 10; i++) {
+                const skeletonItem = document.createElement('div');
+                skeletonItem.className = 'skeleton-item';
+                skeletonItem.innerHTML = `
+                    <div class="skeleton-cover"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-subtitle"></div>
+                    </div>
+                    <div class="skeleton-time"></div>
+                `;
+                container.appendChild(skeletonItem);
+            }
+            
+            // 显示骨架屏
+            container.style.display = 'block';
+        }
+    }
+    
+    // 隐藏骨架屏
+    function hideSkeleton() {
+        if (window.skeletonContainer) {
+            window.skeletonContainer.style.display = 'none';
+        }
+    }
+    
+    // 加载播放历史数据
+    async function loadPlayHistory(page = 1, pageSize = 10) {
+        // 立即尝试获取DOM元素，不使用延迟重试机制
+        const loading = document.getElementById('history-loading');
+        const noHistory = document.getElementById('no-history');
+        const historyList = document.getElementById('history-list');
+        const historyBody = document.getElementById('history-body');
+        const pagination = document.getElementById('pagination');
+        
+        // 简单验证元素是否存在，不存在时仍然继续尝试
+        if (!loading || !noHistory || !historyList || !historyBody) {
+            // 静默处理，不输出警告
+        }
+        
+        // 尝试设置加载状态（如果元素存在）
+        if (loading) loading.style.display = 'none'; // 隐藏文字提示，只使用骨架屏
+        if (noHistory) noHistory.style.display = 'none';
+        if (historyList) historyList.style.display = 'none';
+        
+        // 确保骨架屏容器在DOM中（特别是在页面切换后）
+        initSkeletonContainer();
+        
+        // 隐藏任何可能存在的错误容器
+        const errorContainer = document.querySelector('.error-container');
+        if (errorContainer) {
+            errorContainer.style.display = 'none';
+        }
+        
+        // 清空历史记录内容（如果元素存在）
+        if (historyBody) historyBody.innerHTML = '';
+        if (pagination) pagination.innerHTML = '';
+        
+        // 显示骨架屏
+        showSkeleton();
+        
+        try {
+            const response = await fetch(`/user/get_history?page=${page}&page_size=${pageSize}`);
+            
+            // 检查是否被重定向到登录页面
+            if (response.redirected || response.url.includes('/user/login')) {
+
+                window.location.href = '/user/login';
+                return;
+            }
+            
+            // 检查响应是否成功
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status}`);
+            }
+            
+            // 检查响应是否为JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                // 如果不是JSON响应，可能是重定向到登录页面
+                const text = await response.text();
+                // 检查是否包含登录页面相关内容
+                if (text.includes('<form') || text.includes('登录') || text.includes('login')) {
+                    console.error('用户未登录，重定向到登录页面');
+                    // 重定向到登录页面
+                    window.location.href = '/user/login';
+                    return;
+                }
+                throw new Error('API返回非JSON格式响应');
+            }
+            
+            const data = await response.json();
+            
+            // 检查响应数据中是否指示需要登录
+            if (typeof data.message === 'string' && (data.message.includes('登录') || data.message.includes('需要'))) {
+
+                window.location.href = '/user/login';
+                return;
+            }
+            
+            if (data.history && data.history.length > 0) {
+                // 清空现有内容
+                historyBody.innerHTML = '';
+                
+                // 加载歌曲详情信息
+                const promises = data.history.map(async (item, index) => {
+                    const rank = (page - 1) * pageSize + index + 1;
+                    
+                    try {
+                        // 获取歌曲详情
+                        const songResponse = await fetch(`/music/jx?type=json&ids=${item.song_id}&level=lossless`);
+                        
+                        // 检查响应是否为JSON
+                        const contentType = songResponse.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+    
+                            throw new Error('API返回非JSON格式响应');
+                        }
+                        
+                        const songData = await songResponse.json();
+                        
+                        if (songData.status === 200) {
+                            // 清理数据中的反引号
+                            if (songData.pic) {
+                                songData.pic = songData.pic.replace(/`/g, '');
+                            }
+                            if (songData.url) {
+                                songData.url = songData.url.replace(/`/g, '');
+                            }
+                            
+                            // 构建标准化的songInfo对象，确保与main.js兼容
+                            const songInfo = {
+                                id: songData.id || songData.song_id || item.song_id,
+                                name: songData.name || `歌曲ID: ${item.song_id}`,
+                                // 构建符合标准的嵌套结构
+                                ar: songData.ar || [{ name: songData.ar_name || songData.artist || '未知歌手' }],
+                                al: songData.al || { picUrl: songData.pic || songData.picUrl || '/static/img/logo.png' },
+                                // 添加与main.js兼容的标准字段
+                                artists: songData.ar || [{ name: songData.ar_name || songData.artist || '未知歌手' }],
+                                album: songData.al || { picUrl: songData.pic || songData.picUrl || '/static/img/logo.png' },
+                                // 保留原始数据
+                                originalData: songData
+                            };
+                            
+
+                            
+                            // 创建列表项
+                            const itemElement = document.createElement('div');
+                            itemElement.className = 'music-item';
+                            itemElement.dataset.songId = item.song_id;
+                            
+                            itemElement.innerHTML = `
+                                <div class="item-content">
+                                    <div class="item-rank">${rank}</div>
+                                    <div class="item-info">
+                                        <div class="song-cover">
+                                            <img src="${songInfo.al.picUrl || '/static/img/logo.png'}" alt="${songInfo.name}">
+                                        </div>
+                                        <div class="song-details">
+                                            <div class="song-name">${songInfo.name}</div>
+                                            <div class="song-artist">${songInfo.ar[0].name || '未知歌手'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="play-time">${formatTime(item.play_time)}</div>
+                            `;
+                            
+                            // 点击整项播放歌曲
+                            itemElement.addEventListener('click', function(e) {
+                                // 如果点击的是按钮，不执行项点击事件（避免重复触发）
+                                if (!e.target.closest('.btn-play') && !e.target.closest('.btn-add')) {
+                                    // 确保songInfo对象有效且包含有效ID
+                                    if (songInfo && (songInfo.id || songInfo.song_id || songInfo.songid)) {
+
+                                        playSongWithInfo(songInfo);
+                                    }
+                                }
+                            });
+                            
+
+                            return itemElement;
+                        }
+                    } catch (e) {
+                        
+                    }
+                    
+                    // 如果获取详情失败，创建基础列表项
+                            const itemElement = document.createElement('div');
+                            itemElement.className = 'music-item';
+                            itemElement.dataset.songId = item.song_id;
+                            
+                            itemElement.innerHTML = `
+                                <div class="item-content">
+                                    <div class="item-rank">${rank}</div>
+                                    <div class="item-info">
+                                        <div class="song-cover">
+                                            <img src="/static/img/logo.png" alt="未知歌曲">
+                                        </div>
+                                        <div class="song-details">
+                                            <div class="song-name">歌曲ID: ${item.song_id}</div>
+                                            <div class="song-artist">信息加载失败</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="play-time">${formatTime(item.play_time)}</div>
+                            `;
+                    
+                            // 点击整项播放歌曲
+                            itemElement.addEventListener('click', function(e) {
+                                // 如果点击的是按钮，不执行项点击事件
+                                if (!e.target.closest('.btn-play')) {
+                                    // 验证歌曲ID不为空且有效
+                                    const songId = item.song_id;
+                                    if (!songId) {
+    
+                                        return;
+                                    }
+                                    
+                                    // 创建标准化的track对象
+                                    const track = {
+                                        id: songId.toString(), // 确保是字符串格式
+                                        name: `歌曲ID: ${songId}`,
+                                        artist: '未知歌手',
+                                        picUrl: '/static/img/logo.png',
+                                        // 添加与main.js兼容的字段
+                                        ar: [{ name: '未知歌手' }],
+                                        al: { picUrl: '/static/img/logo.png' },
+                                        artists: [{ name: '未知歌手' }],
+                                        album: { picUrl: '/static/img/logo.png' }
+                                    };
+                                    
+
+                                    
+                                    // 使用标准的播放接口
+                                    if (typeof window.playTrackFromPlaylist === 'function') {
+                                        window.playTrackFromPlaylist([track], 0);
+                                    } else if (typeof window.playTrack === 'function') {
+                                        window.playTrack(0);
+                                    }
+                                }
+                            });
+                            
+                            // 按钮已移除，无需添加事件监听器
+                            
+                            return itemElement;
+                });
+                
+                // 尝试获取数据，添加重试逻辑
+                async function fetchDataWithRetry(fetchFunc, maxRetries = 3) {
+                    let lastError;
+                    
+                    for (let attempt = 0; attempt < maxRetries; attempt++) {
+                        try {
+                            return await fetchFunc();
+                        } catch (error) {
+                            lastError = error;
+                            // 指数退避策略
+                            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+                        }
+                    }
+                    
+                    throw lastError;
+                }
+                
+                // 检查是否已经有歌曲详情（后端批量获取）
+                if (data.has_details && data.history.length > 0) {
+                    // 直接使用后端返回的歌曲详情
+                    const rows = data.history.map((item, index) => {
+                        const rank = (page - 1) * pageSize + index + 1;
+                        
+                        // 构建标准化的songInfo对象
+                        const songInfo = {
+                            id: item.song_id,
+                            name: item.name || `歌曲ID: ${item.song_id}`,
+                            ar: item.artist ? [{ name: item.artist }] : [{ name: '未知歌手' }],
+                            al: { picUrl: item.cover_url || '/static/img/logo.png' },
+                            artists: item.artist ? [{ name: item.artist }] : [{ name: '未知歌手' }],
+                            album: { picUrl: item.cover_url || '/static/img/logo.png' }
+                        };
+                        
+                        // 创建列表项
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'music-item';
+                        itemElement.dataset.songId = item.song_id;
+                        
+                        itemElement.innerHTML = `
+                            <div class="item-content">
+                                <div class="item-rank">${rank}</div>
+                                <div class="item-info">
+                                    <div class="song-cover">
+                                        <img src="${songInfo.al.picUrl}" alt="${songInfo.name}">
+                                    </div>
+                                    <div class="song-details">
+                                        <div class="song-name">${songInfo.name}</div>
+                                        <div class="song-artist">${songInfo.ar[0].name}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="play-time">${formatTime(item.play_time)}</div>
+                        `;
+                        
+                        // 添加点击事件
+                        itemElement.addEventListener('click', function(e) {
+                            if (!e.target.closest('.btn-play') && !e.target.closest('.btn-add')) {
+                                playSongWithInfo(songInfo);
+                            }
+                        });
+                        
+                        return itemElement;
+                    });
+                    
+                    // 添加到容器
+                    rows.forEach(row => {
+                        historyBody.appendChild(row);
+                    });
+                } else {
+                    // 后端没有返回详情，使用原来的方式逐个获取，但添加重试机制
+                    const rows = await Promise.all(
+                        promises.map(promise => 
+                            fetchDataWithRetry(() => promise, 2) // 最多重试2次
+                                .catch(() => {
+                                    // 返回一个默认的错误提示元素
+                                    const errorItem = document.createElement('div');
+                                    errorItem.className = 'music-item error-item';
+                                    errorItem.innerHTML = '<div class="error-text">获取歌曲信息失败</div>';
+                                    return errorItem;
+                                })
+                        )
+                    );
+                    
+                    // 添加到容器
+                    rows.forEach(row => {
+                        historyBody.appendChild(row);
+                    });
+                }
+                
+                // 生成分页控件
+                generatePagination(page, data.total_pages);
+                
+                // 显示历史记录列表
+                historyList.style.display = 'block';
+                
+                // 添加列表项动画
+                setTimeout(animateListItems, 100);
+            } else {
+                // 显示无历史记录
+                noHistory.style.display = 'block';
+            }
+        } catch (error) {
+
+                    hideSkeleton();
+                    
+                    // 检查是否已有错误提示容器，如果没有则创建
+                    let errorContainer = document.querySelector('.error-container');
+                    if (!errorContainer) {
+                        errorContainer = document.createElement('div');
+                        errorContainer.className = 'error-container';
+                        errorContainer.style.display = 'none';
+                        document.querySelector('.history-content').appendChild(errorContainer);
+                    }
+                    
+                    // 根据错误类型显示不同的错误信息
+                    let errorMessage = '加载播放历史失败';
+                    if (error.message && (error.message.includes('登录') || error.message.includes('需要'))) {
+                        errorMessage = '请先登录后查看播放历史';
+                    } else if (error.message && error.message.includes('API请求失败')) {
+                        errorMessage = `网络请求失败: ${error.message.split(':')[1]?.trim() || '未知错误'}`;
+                    } else {
+                        errorMessage = `加载失败: ${error.message || '网络错误'}`;
+                    }
+                    
+                    errorContainer.innerHTML = `
+                        <div style="text-align: center; padding: 60px 20px; color: #b0b0b0;">
+                            <p style="margin-bottom: 20px;">${errorMessage}</p>
+                            <button class="btn-retry" style="padding: 10px 20px; background-color: #1db954; color: white; border: none; border-radius: 25px; cursor: pointer; margin: 5px;">重试</button>
+                            ${error.message && (error.message.includes('登录') || error.message.includes('需要')) ? 
+                                '<button class="btn-login" style="padding: 10px 20px; background-color: #333; color: white; border: none; border-radius: 25px; cursor: pointer; margin: 5px;">去登录</button>' : ''}
+                        </div>
+                    `;
+                    errorContainer.style.display = 'block';
+                    
+                    // 添加重试事件
+                    errorContainer.querySelector('.btn-retry').addEventListener('click', () => {
+                        errorContainer.style.display = 'none';
+                        loadPlayHistory(page, pageSize);
+                    });
+                    
+                    // 如果存在登录按钮，添加登录事件
+                    const loginBtn = errorContainer.querySelector('.btn-login');
+                    if (loginBtn) {
+                        loginBtn.addEventListener('click', () => {
+                            window.location.href = '/user/login';
+                        });
+                    }
+                } finally {
+                        // 隐藏骨架屏
+                    hideSkeleton();
+                    
+                    // 确保loading元素存在 (已设置为默认隐藏，但保留以备将来需要)
+                    if (loading) {
+                        loading.style.display = 'none';
+                    }
+                }
+    }
+    
+    // 格式化时间
+    function formatTime(timeStr) {
+        const date = new Date(timeStr);
+        const now = new Date();
+        const diff = now - date;
+        
+        // 小于1分钟
+        if (diff < 60 * 1000) {
+            return '刚刚';
+        }
+        
+        // 小于1小时
+        if (diff < 60 * 60 * 1000) {
+            return Math.floor(diff / (60 * 1000)) + '分钟前';
+        }
+        
+        // 小于24小时
+        if (diff < 24 * 60 * 60 * 1000) {
+            return Math.floor(diff / (60 * 60 * 1000)) + '小时前';
+        }
+        
+        // 小于7天
+        if (diff < 7 * 24 * 60 * 60 * 1000) {
+            return Math.floor(diff / (24 * 60 * 60 * 1000)) + '天前';
+        }
+        
+        // 超过7天显示具体日期
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        if (year === now.getFullYear()) {
+            return `${month}-${day}`;
+        }
+        
+        return `${year}-${month}-${day}`;
+    }
+    
+    // 生成分页控件
+    function generatePagination(currentPage, totalPages) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        
+        // 上一页按钮
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'page-btn';
+        prevBtn.textContent = '上一页';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                loadPlayHistory(currentPage - 1);
+            }
+        });
+        pagination.appendChild(prevBtn);
+        
+        // 页码按钮
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            pageBtn.textContent = i;
+            pageBtn.addEventListener('click', function() {
+                loadPlayHistory(i);
+            });
+            pagination.appendChild(pageBtn);
+        }
+        
+        // 下一页按钮
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'page-btn';
+        nextBtn.textContent = '下一页';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                loadPlayHistory(currentPage + 1);
+            }
+        });
+        pagination.appendChild(nextBtn);
+    }
+    
+    // 带歌曲信息的播放函数
+    function playSongWithInfo(songInfo) {
+    // 验证songInfo对象是否存在
+    if (!songInfo || typeof songInfo !== 'object') {
+        return;
+    }
+    
+    // 尝试从多个可能的字段获取歌曲ID
+    let songId = songInfo.id || songInfo.song_id || songInfo.songid;
+    
+    // 强制转换为字符串并验证
+    if (songId !== undefined && songId !== null) {
+        songId = String(songId).trim();
+        
+        // 验证歌曲ID是否为有效的数字格式
+        if (!/^\d+$/.test(songId)) {
+            return;
+        }
+    } else {
+        return;
+    }
+    
+    // 创建标准化的track对象，确保与main.js兼容
+    const track = {
+        id: songId,
+        name: songInfo.name || `歌曲ID: ${songId}`,
+        ar: songInfo.ar || songInfo.artists || [{ name: songInfo.ar_name || songInfo.artist || '未知歌手' }],
+        al: songInfo.al || songInfo.album || { picUrl: songInfo.pic || songInfo.picUrl || '/static/img/logo.png' },
+        artists: songInfo.ar || songInfo.artists || [{ name: songInfo.ar_name || songInfo.artist || '未知歌手' }],
+        album: songInfo.al || songInfo.album || { picUrl: songInfo.pic || songInfo.picUrl || '/static/img/logo.png' }
+    };
+    
+    // 使用标准的播放接口
+    if (typeof window.playTrackFromPlaylist === 'function') {
+        window.playTrackFromPlaylist([track], 0);
+    } else if (typeof window.playTrack === 'function') {
+        window.playTrack(0);
+    }
+}
+    
+    // 页面加载时立即初始化，使用setTimeout确保DOM完全准备就绪
+    setTimeout(() => {
+        loadPlayHistory();
+    }, 100);
+    
+    // 支持手动刷新播放历史数据
+    window.refreshPlayHistory = function() {
+        loadPlayHistory();
+    };
+    
+    // 仅保留页面可见性变化监听，但添加防抖机制
+    // 使用全局变量避免重复声明
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            // 防抖处理，避免频繁触发
+            clearTimeout(window.visibilityChangeTimeout);
+            window.visibilityChangeTimeout = setTimeout(() => {
+                // 避免过于频繁地重新加载
+                if (!window.lastLoadTime || (Date.now() - window.lastLoadTime > 5000)) {
+                    window.lastLoadTime = Date.now();
+
+                    loadPlayHistory();
+                }
+            }, 300);
+        }
+    });
+    
+    // 初始化上次加载时间
+    window.lastLoadTime = 0;
+</script>

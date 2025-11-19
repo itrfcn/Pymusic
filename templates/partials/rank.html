@@ -1,0 +1,690 @@
+<div class="music-ranking">
+    <!-- 页面标题 -->
+    <div class="page-header">
+        <h1>音乐排行榜</h1>
+        <p>探索最热门的音乐趋势</p>
+    </div>
+
+    <!-- 排行榜分类标签 -->
+    <div class="ranking-tabs">
+        <span class="tab active" data-type="popular">热歌榜</span>
+        <span class="tab" data-type="hot">飙升榜</span>
+        <span class="tab" data-type="new">新歌榜</span>
+        <span class="tab" data-type="original">原创榜</span>
+    </div>
+
+    <!-- 排行榜内容区域 -->
+    <div class="ranking-content">
+        <!-- 排行榜列表将动态插入 -->
+    </div>
+
+    <!-- 加载更多按钮 -->
+    <div class="load-more-container">
+        <button id="load-more">加载更多</button>
+    </div>
+</div>
+
+<style>
+    /* 基础样式 - 黑色系主题且占满全屏 */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    html, body {
+        height: 100%;
+        min-height: 100vh;
+        background-color: #0a0a0a;
+        color: #ffffff;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .music-ranking {
+        width: 100%;
+        min-height: 100vh;
+        padding: 30px 15px;
+        position: relative;
+        background-color: #0a0a0a;
+        flex: 1;
+    }
+
+    /* 页面标题 */
+    .page-header {
+        margin-bottom: 30px;
+        padding: 0 15px;
+    }
+
+    .page-header h1 {
+        font-size: 2.2rem;
+        color: #ffffff;
+        margin-bottom: 10px;
+    }
+
+    .page-header p {
+        color: #b0b0b0;
+        font-size: 1rem;
+    }
+
+    /* 排行榜分类标签 */
+    .ranking-tabs {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+        overflow-x: auto;
+        padding: 0 15px 5px;
+    }
+
+    .ranking-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .ranking-tabs::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 2px;
+    }
+
+    .tab {
+        padding: 8px 20px;
+        background: #1a1a1a;
+        border-radius: 20px;
+        font-size: 1rem;
+        color: #b0b0b0;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .tab.active {
+        background: #333;
+        color: white;
+        font-weight: 500;
+    }
+
+    .tab:hover:not(.active) {
+        background: #2a2a2a;
+    }
+
+    /* 排行榜列表样式 */
+    .ranking-content {
+        padding: 0 15px;
+        flex: 1;
+    }
+
+    .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ranking-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        background: #1a1a1a;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .ranking-item:hover {
+        background: #252525;
+        transform: translateX(5px);
+    }
+
+    /* 排名数字 */
+    .rank-number {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+
+    /* 前三名特殊样式 */
+    .rank-number.top-1 {
+        color: #ffd700;
+    }
+
+    .rank-number.top-2 {
+        color: #c0c0c0;
+    }
+
+    .rank-number.top-3 {
+        color: #cd7f32;
+    }
+
+    /* 歌曲信息 */
+    .song-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .song-cover {
+        width: 50px;
+        height: 50px;
+        border-radius: 4px;
+        object-fit: cover;
+    }
+
+    .song-details {
+        min-width: 0;
+    }
+
+    .song-name {
+        font-size: 1rem;
+        color: #ffffff;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .song-artist {
+        font-size: 0.85rem;
+        color: #888;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* 歌曲数据 */
+    .song-data {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        color: #888;
+        font-size: 0.9rem;
+    }
+
+    .play-count {
+        display: flex;
+        align-items: center;
+    }
+
+    .play-count::before {
+        content: "";
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M11 5L6 9H2v6h4l5 4V5zm7.5 6c0-2.48-2.02-4.5-4.5-4.5S9 8.52 9 11s2.02 4.5 4.5 4.5 4.5-2.02 4.5-4.5zm0 7c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'/%3E%3C/svg%3E") no-repeat;
+        background-size: contain;
+        margin-right: 6px;
+    }
+
+    /* 排名变化指示器 */
+    .rank-change {
+        display: flex;
+        align-items: center;
+    }
+
+    .rank-up {
+        color: #4CAF50;
+    }
+
+    .rank-up::before {
+        content: "↑";
+        margin-right: 4px;
+    }
+
+    .rank-down {
+        color: #F44336;
+    }
+
+    .rank-down::before {
+        content: "↓";
+        margin-right: 4px;
+    }
+
+    .rank-stable {
+        color: #888;
+    }
+
+    .rank-stable::before {
+        content: "—";
+    }
+
+    /* 加载状态 */
+    .loading {
+        text-align: center;
+        padding: 80px 0;
+        color: #888;
+        font-size: 1rem;
+    }
+
+    .loading .spinner {
+        width: 40px;
+        height: 4px;
+        background: #2a2a2a;
+        border-radius: 2px;
+        margin: 15px auto;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .loading .spinner::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 50%;
+        height: 100%;
+        background: #ff3a3a;
+        border-radius: 2px;
+        animation: loading 1.5s infinite ease-in-out;
+    }
+
+    @keyframes loading {
+        0% {
+            left: -50%;
+        }
+
+        50% {
+            left: 100%;
+        }
+        100% {
+            left: -50%;
+        }
+    }
+
+    /* 加载更多按钮 */
+    .load-more-container {
+        text-align: center;
+        margin-top: 30px;
+        padding: 0 15px 30px;
+    }
+
+    #load-more {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 10px 28px;
+        border-radius: 20px;
+        color: #b0b0b0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+    }
+
+    #load-more:hover {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #fff;
+    }
+
+    #load-more:active {
+        background: #333;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 767px) {
+        .song-data {
+            display: none;
+        }
+
+        .rank-number {
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+        }
+    }
+
+    @media (min-width: 768px) {
+        .page-header h1 {
+            font-size: 2.5rem;
+        }
+
+        .music-ranking {
+            padding: 40px 30px;
+        }
+    }
+
+    /* 确保在内容较少时也能占满屏幕 */
+    @media (max-height: 600px) {
+        .page-header {
+            margin-bottom: 20px;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+        }
+
+        .ranking-item {
+            padding: 10px 15px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 音乐排行榜主程序
+        // 功能：展示不同类型的音乐排行榜，支持点击直接播放歌曲
+
+        // ====== 工具函数 ======
+        
+        /**
+         * 格式化播放次数
+         * @param {number} count - 原始播放次数
+         * @returns {string} 格式化后的播放次数
+         */
+        function formatPlayCount(count) {
+            if (count >= 100000000) {
+                return (count / 100000000).toFixed(1) + '亿';
+            } else if (count >= 10000) {
+                return (count / 10000).toFixed(1) + '万';
+            }
+            return count.toString();
+        }
+
+        /**
+         * 生成随机排名变化数据
+         * @returns {Object} 包含排名变化类型和数值的对象
+         */
+        function generateRandomChange() {
+            const types = ['up', 'down', 'stable'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            if (type === 'stable') {
+                return { type: 'stable' };
+            }
+            
+            const value = Math.floor(Math.random() * 10) + 1;
+            return { type, value };
+        }
+
+        // ====== 配置和数据 ======
+        
+        // 排行榜类型与播放列表ID的映射
+        const playlistMap = {
+            popular: '3778678' ,   // 热歌榜
+            hot: '19723756',      // 飙升榜
+            new: '3779629',       // 新歌榜
+            original: '2884035'  // 原创榜
+        };
+
+        // 存储从API获取的排行榜数据
+        const rankingData = {};
+        
+        // 当前激活的排行榜类型
+        let activeType = 'popular';
+        
+        // ====== 数据获取 ======
+
+        /**
+         * 从API获取排行榜数据（带重试逻辑）
+         * @param {string} type - 排行榜类型
+         * @param {number} retryCount - 当前重试次数
+         * @param {number} maxRetries - 最大重试次数
+         * @returns {Promise<Array>} 歌曲列表数据
+         */
+        async function fetchPlaylistData(type, retryCount = 0, maxRetries = 3) {
+            try {
+                // 获取对应类型的播放列表ID
+                const playlistId = playlistMap[type];
+                if (!playlistId) {
+                    throw new Error('未找到对应的播放列表ID');
+                }
+
+                // 优先使用缓存数据
+                if (rankingData[playlistId] && rankingData[playlistId].length > 0) {
+                    return rankingData[playlistId];
+                }
+
+                // 请求API获取数据
+                const response = await fetch(`/music/playlist/${playlistId}`);
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // 转换数据格式以适应渲染需求
+                const songs = data.result && data.result.tracks ? 
+                    data.result.tracks.map((song, index) => ({
+                        id: song.id || index + 1,
+                        name: song.name || '未知歌曲',
+                        artist: song.artists ? song.artists.map(ar => ar.name).join(', ') : '未知歌手',
+                        album: song.album ? song.album.name : '未知专辑',
+                        cover: song.album ? song.album.picUrl : 'https://picsum.photos/id/237/300/300',
+                        playCount: song.playCount || Math.floor(Math.random() * 1000000) + 100000,
+                        change: generateRandomChange()
+                    })) : [];
+                
+                // 数据为空时进行重试
+                if (songs.length === 0 && retryCount < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return fetchPlaylistData(type, retryCount + 1, maxRetries);
+                }
+                
+                // 缓存数据
+                rankingData[playlistId] = songs;
+                
+                return songs;
+            } catch (error) {
+                console.error('获取排行榜数据失败:', error);
+                // 请求出错时进行重试
+                if (retryCount < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return fetchPlaylistData(type, retryCount + 1, maxRetries);
+                }
+                return [];
+            }
+        }
+
+        // ====== 视图渲染 ======
+
+        // 检查页面是否包含排行榜内容容器，避免在其他页面执行时出错
+        const contentContainer = document.querySelector('.ranking-content');
+        
+        // 如果不在排行榜页面，不执行后续代码
+        if (!contentContainer) {
+            console.log('不在排行榜页面，跳过排行榜初始化');
+            return;
+        }
+
+        /**
+         * 显示加载状态
+         */
+        function showLoading() {
+            contentContainer.innerHTML = `
+            <div class="loading">
+                加载排行榜数据中
+                <div class="spinner"></div>
+            </div>
+        `;
+        }
+
+        /**
+         * 渲染排行榜列表
+         * @param {string} type - 排行榜类型
+         */
+        function renderRanking(type) {
+            const songs = rankingData[type];
+            if (!songs || songs.length === 0) {
+                contentContainer.innerHTML = `
+                    <div class="loading">
+                        暂无数据
+                    </div>
+                `;
+                return;
+            }
+
+            contentContainer.innerHTML = '<div class="ranking-list"></div>';
+            const listContainer = contentContainer.querySelector('.ranking-list');
+
+            // 遍历渲染每首歌曲
+            songs.forEach((song, index) => {
+                const rank = index + 1;
+                
+                // 处理排名变化样式
+                let changeClass = '';
+                let changeText = '';
+                if (song.change.type === 'up') {
+                    changeClass = 'rank-up';
+                    changeText = song.change.value;
+                } else if (song.change.type === 'down') {
+                    changeClass = 'rank-down';
+                    changeText = song.change.value;
+                } else {
+                    changeClass = 'rank-stable';
+                    changeText = '';
+                }
+
+                // 创建歌曲项元素
+                const item = document.createElement('div');
+                item.className = 'ranking-item';
+                item.dataset.id = song.id;
+                item.dataset.type = type;
+
+                item.innerHTML = `
+                <div class="rank-number ${rank <= 3 ? 'top-' + rank : ''}">${rank}</div>
+                <div class="song-info">
+                    <img src="${song.cover}" alt="${song.name}" class="song-cover">
+                    <div class="song-details">
+                        <div class="song-name">${song.name}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                </div>
+                <div class="song-data">
+                    <div class="play-count">${formatPlayCount(song.playCount)}</div>
+                    <div class="rank-change ${changeClass}">${changeText}</div>
+                </div>
+            `;
+
+                // 绑定歌曲点击事件 - 直接播放
+                item.addEventListener('click', () => {
+                    // 准备当前排行榜的歌曲列表
+                    const currentSongsList = rankingData[type].map(song => ({
+                        id: song.id,
+                        name: song.name,
+                        artists: song.artist ? [{ name: song.artist }] : [],
+                        album: { picUrl: song.cover },
+                        dt: song.duration || 0
+                    }));
+                    
+                    // 调用全局播放器功能播放当前歌曲
+                    if (window.playTrackFromPlaylist) {
+                        window.playTrackFromPlaylist(currentSongsList, index);
+                    } else {
+                        console.warn('播放器功能未找到，尝试备用方法...');
+                        // 简单的视觉反馈
+                        showPlayingIndicator(item);
+                    }
+                });
+
+                listContainer.appendChild(item);
+            });
+
+            // 隐藏加载更多按钮
+            document.getElementById('load-more').style.display = 'none';
+        }
+
+        /**
+         * 显示播放指示器（备用方案）
+         * @param {HTMLElement} element - 要添加指示器的元素
+         */
+        function showPlayingIndicator(element) {
+            const playIndicator = document.createElement('div');
+            playIndicator.className = 'playing-indicator';
+            playIndicator.textContent = '▶';
+            element.appendChild(playIndicator);
+            
+            setTimeout(() => {
+                playIndicator.remove();
+            }, 1000);
+        }
+
+        /**
+         * 加载并渲染指定类型的排行榜
+         * @param {string} type - 排行榜类型
+         */
+        async function loadAndRenderRanking(type) {
+            showLoading();
+            
+            try {
+                // 使用缓存或获取新数据
+                if (!rankingData[type]) {
+                    rankingData[type] = await fetchPlaylistData(type);
+                }
+                
+                // 延迟显示避免闪烁
+                setTimeout(() => {
+                    renderRanking(type);
+                }, 300);
+            } catch (error) {
+                console.error('加载排行榜失败:', error);
+                contentContainer.innerHTML = `
+                    <div class="loading">
+                        加载失败，请稍后重试
+                    </div>
+                `;
+            }
+        }
+
+        // ====== 事件处理 ======
+
+        // 初始化：加载默认排行榜
+        if (contentContainer) {
+            loadAndRenderRanking(activeType);
+        }
+
+        // 排行榜类型切换处理
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function () {
+                const type = this.dataset.type;
+                if (type === activeType) return;
+
+                // 更新激活状态
+                tabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                activeType = type;
+
+                // 加载并渲染新的排行榜
+                loadAndRenderRanking(type);
+            });
+        });
+
+        // ====== 样式补充 ======
+
+        // 添加播放指示器样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .playing-indicator {
+                position: absolute;
+                top: 50%;
+                right: 20px;
+                transform: translateY(-50%);
+                background: rgba(230, 46, 4, 0.9);
+                color: white;
+                border-radius: 50%;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                animation: pulse 1s ease-in-out;
+            }
+            
+            @keyframes pulse {
+                0% { transform: translateY(-50%) scale(0.8); opacity: 0; }
+                50% { transform: translateY(-50%) scale(1.1); opacity: 1; }
+                100% { transform: translateY(-50%) scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>

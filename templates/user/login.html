@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音悦台 - 用户登录</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        /* --- CSS 变量定义 --- */
+        :root {
+            --primary-color: #6a11cb;
+            --secondary-color: #2575fc;
+            --bg-gradient: linear-gradient(135deg, #121212 0%, #281c3e 50%, #121212 100%);
+            --card-bg: rgba(0, 0, 0, 0.75);
+            --text-color: #fff;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --input-focus-shadow: 0 0 0 3px rgba(106, 17, 203, 0.5);
+        }
+
+        /* --- 基础与重置 --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+            overflow: hidden;
+        }
+
+        /* --- 音乐背景特效 --- */
+        .music-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(106, 17, 203, 0.2) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        /* --- 黑胶唱片动画 --- */
+        .vinyl-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            height: 380px;
+            z-index: -1;
+            opacity: 0.25;
+        }
+
+        .vinyl {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #111;
+            border: 18px solid #333;
+            position: relative;
+            animation: spin 8s linear infinite;
+        }
+
+        .vinyl::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #555;
+            border: 12px solid #333;
+        }
+
+        .vinyl::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #222;
+        }
+
+        .vinyl-texture {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 3px);
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- 登录卡片 --- */
+        .login-card {
+            width: 90%;
+            max-width: 480px;
+            padding: 3.5rem 2.5rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(106, 17, 203, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s ease;
+            animation: cardFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes cardFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .login-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(106, 17, 203, 0.4);
+        }
+
+        .login-card .title {
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .login-card .title h2 {
+            color: var(--text-color);
+            font-size: 2.4rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-shadow: 0 0 15px rgba(106, 17, 203, 0.6);
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            white-space: nowrap;
+        }
+
+        .login-card .title::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 3px;
+            box-shadow: 0 0 8px rgba(106, 17, 203, 0.8);
+        }
+
+        /* --- 表单样式 --- */
+        .form-group {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .form-group i {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary-color);
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 60px;
+            padding: 0 25px 0 55px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: var(--input-focus-shadow);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .form-control:focus + i {
+            color: var(--primary-color);
+            transform: translateY(-50%) scale(1.3);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.5px;
+        }
+
+        /* --- 按钮 --- */
+        .btn {
+            width: 100%;
+            height: 60px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.15rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 0 20px;
+        }
+
+        .btn-login {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.25), transparent);
+            transform: rotate(30deg);
+            animation: btnShine 3s linear infinite;
+        }
+
+        @keyframes btnShine {
+            0% {
+                transform: rotate(30deg) translateX(-100%);
+            }
+            100% {
+                transform: rotate(30deg) translateX(100%);
+            }
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(106, 17, 203, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-register {
+            background-color: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            margin-top: 1rem;
+        }
+
+        .btn-register:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* --- 音乐图标装饰 --- */
+        .music-icon {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 2.5rem;
+            color: rgba(106, 17, 203, 0.3);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-15px) rotate(5deg);
+            }
+        }
+
+        /* --- 响应式调整 --- */
+        @media (max-width: 768px) {
+            .vinyl-container {
+                width: 300px;
+                height: 300px;
+            }
+
+            .login-card {
+                padding: 3rem 2rem;
+            }
+
+            .login-card .title h2 {
+                font-size: 2.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            html, body {
+                padding: 10px 0;
+            }
+
+            .login-card {
+                padding: 2.5rem 1.8rem;
+                max-width: 95%;
+            }
+
+            .login-card .title h2 {
+                font-size: 1.8rem;
+            }
+
+            .form-control, .btn {
+                height: 55px;
+                font-size: 1rem;
+            }
+
+            .vinyl-container {
+                width: 220px;
+                height: 220px;
+                opacity: 0.2;
+            }
+
+            .music-icon {
+                font-size: 2rem;
+                top: 20px;
+                right: 20px;
+            }
+        }
+
+        /* --- Toast 通知组件样式 --- */
+        .toast-container {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background-color: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 90%;
+            animation: toastSlideIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards,
+            toastFadeOut 0.5s ease-in-out forwards 2.5s;
+        }
+
+        .toast-error {
+            border-left: 4px solid #ff4444;
+        }
+
+        .toast .icon {
+            color: #ff4444;
+            font-size: 1.4rem;
+        }
+
+        .toast .message {
+            flex: 1;
+            text-align: left;
+            font-size: 1.05rem;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastFadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* --- 优化：音频可视化波形 --- */
+        .wave-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            z-index: 0;
+            pointer-events: none;
+            height: 180px;
+        }
+
+        .wave-bar {
+            flex: 1;
+            margin: 0 1px;
+            background: linear-gradient(to top,
+            rgba(106, 17, 203, 0.8),
+            rgba(106, 17, 203, 0.5) 70%,
+            rgba(106, 17, 203, 0.1));
+            border-radius: 4px 4px 0 0;
+            animation: waveAnim 2s ease-in-out infinite alternate;
+            transform-origin: bottom;
+        }
+
+        .wave-bar:nth-child(4n) {
+            animation-delay: -0.4s;
+            animation-duration: 1.8s;
+        }
+
+        .wave-bar:nth-child(4n+1) {
+            animation-delay: -0.8s;
+            animation-duration: 2.2s;
+        }
+
+        .wave-bar:nth-child(4n+2) {
+            animation-delay: -1.2s;
+            animation-duration: 2.0s;
+        }
+
+        .wave-bar:nth-child(4n+3) {
+            animation-delay: -1.6s;
+            animation-duration: 1.6s;
+        }
+
+        @keyframes waveAnim {
+            0% {
+                height: 5px;
+                opacity: 0.3;
+            }
+            100% {
+                height: 150px;
+                opacity: 1;
+            }
+        }
+
+        /* 移动端性能优化 */
+        @media (max-width: 768px) {
+            .wave-bar {
+                animation-duration: 2.5s;
+            }
+
+            .wave-bar:nth-child(even) {
+                animation-duration: 2.8s;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .wave-container {
+                height: 120px;
+            }
+
+            .wave-bar {
+                margin: 0 0.5px;
+            }
+
+            @keyframes waveAnim {
+                0% {
+                    height: 3px;
+                    opacity: 0.2;
+                }
+                100% {
+                    height: 100px;
+                    opacity: 0.8;
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- 音乐背景 -->
+<div class="music-bg"></div>
+
+<!-- 黑胶唱片 -->
+<div class="vinyl-container">
+    <div class="vinyl">
+        <div class="vinyl-texture"></div>
+    </div>
+</div>
+
+<!-- Toast 通知容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<main>
+    <!-- 登录卡片 -->
+    <div class="login-card">
+        <i class="fa fa-music music-icon"></i>
+        <div class="title">
+            <h2><i class="fa fa-headphones" style="margin-right: 12px;"></i>用户登录</h2>
+        </div>
+        <form id="loginForm" method="post" action="/user/login">
+            <div class="form-group">
+                <input type="text" name="username" class="form-control" placeholder="请输入用户名" autocomplete="off"
+                       required>
+                <i class="fa fa-user"></i>
+            </div>
+            <div class="form-group">
+                <input type="password" name="password" class="form-control" placeholder="请输入密码" autocomplete="off"
+                       required>
+                <i class="fa fa-lock"></i>
+            </div>
+            <button type="submit" class="btn btn-login">
+                <i class="fa fa-sign-in"></i> 登录
+            </button>
+            <button type="button" class="btn btn-register" onclick="window.location.href='/user/register'">
+                <i class="fa fa-user-plus"></i> 注册账号
+            </button>
+            <button type="button" class="btn btn-register" onclick="window.location.href='/'">
+                <i class="fa fa-home"></i> 返回首页
+            </button>
+        </form>
+    </div>
+</main>
+
+<!-- 音频可视化波形 -->
+<div class="wave-container" id="waveContainer"></div>
+
+<script>
+    // 自定义 Toast 通知函数
+    function showToast(message, type = 'error') {
+        const toastContainer = document.getElementById('toastContainer');
+
+        const toast = document.createElement('div');
+        toast.classList.add('toast', `toast-${type}`);
+
+        toast.innerHTML = `
+                <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
+                <div class="message">${message}</div>
+            `;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toastContainer.removeChild(toast);
+            }
+        }, 3000);
+    }
+
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- 表单验证 ---
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const username = document.querySelector('input[name="username"]').value.trim();
+            const password = document.querySelector('input[name="password"]').value.trim();
+            let isValid = true;
+
+            // 先检查是否为空
+            if (!username || !password) {
+                showToast('账号或密码不能为空');
+                isValid = false;
+            }
+            // 再检查长度
+            else if (username.length < 3 || username.length > 20) {
+                showToast('用户名长度应在 3-20 个字符之间');
+                isValid = false;
+            } else if (password.length < 6 || password.length > 20) {
+                showToast('密码长度应在 6-20 个字符之间');
+                isValid = false;
+            }
+
+            if (isValid) {
+                // 使用 Ajax 提交表单
+                const formData = new FormData(this);
+
+                fetch('/user/login', {
+                    method: 'POST',
+                    body: formData
+                })
+                        .then(response => {
+                            // 检查响应类型
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                return response.json();
+                            } else {
+                                // 如果是 HTML 响应，可能是 JS.alert 返回的页面
+                                return response.text().then(text => {
+                                    // 尝试从 HTML 中提取错误信息
+                                    const match = text.match(/alert\(['"](.+?)['"]\)/);
+                                    if (match) {
+                                        showToast(match[1]);
+                                    } else {
+                                        // 如果无法提取信息，显示通用错误
+                                        showToast('登录失败，请重试');
+                                    }
+                                    return null;
+                                });
+                            }
+                        })
+                        .then(data => {
+                            if (data && data.message) {
+                                // 如果后端返回了 JSON 格式的错误信息
+                                showToast(data.message);
+                                if (data.message.includes('登录成功')) {
+                                    setTimeout(() => {
+                                        window.location.href = '/';
+                                    }, 2000);
+                                }
+                            } else if (data === null) {
+                                // 已经处理过错误信息，无需再次处理
+                                return;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('系统错误，请稍后重试');
+                        });
+            }
+        });
+
+        // --- 动态生成音频可视化波形 ---
+        setTimeout(function () {
+            const waveContainer = document.getElementById('waveContainer');
+            // 根据屏幕宽度调整波形条数
+            const barCount = Math.min(80, Math.max(30, Math.floor(window.innerWidth / 8)));
+
+            for (let i = 0; i < barCount; i++) {
+                const bar = document.createElement('div');
+                bar.classList.add('wave-bar');
+                // 随机设置一个初始高度，让波形看起来更自然
+                bar.style.height = `${Math.random() * 30 + 5}px`;
+                waveContainer.appendChild(bar);
+            }
+        }, 300);
+    });
+
+    // 移动端优化：当输入框聚焦时暂停波形动画以提高性能
+    document.addEventListener('DOMContentLoaded', function () {
+        const inputs = document.querySelectorAll('input');
+        const waveBars = document.querySelectorAll('.wave-bar');
+
+        inputs.forEach(input => {
+            input.addEventListener('focus', function () {
+                // 在移动设备上暂停波形动画
+                if ('ontouchstart' in window) {
+                    waveBars.forEach(bar => {
+                        bar.style.animationPlayState = 'paused';
+                    });
+                }
+            });
+
+            input.addEventListener('blur', function () {
+                // 恢复波形动画
+                waveBars.forEach(bar => {
+                    bar.style.animationPlayState = 'running';
+                });
+            });
+        });
+    });
+</script>
+</body>
+</html>

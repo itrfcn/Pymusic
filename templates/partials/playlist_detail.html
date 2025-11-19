@@ -487,28 +487,6 @@
   white-space: nowrap;
 }
 
-.pl-btn-add-to-playlist {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pl-btn-add-to-playlist:hover {
-  background-color: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-  transform: scale(1.1);
-}
-
 /* 按钮样式 */
 .btn {
   padding: 8px 16px;
@@ -797,8 +775,6 @@
                 <button id="pl-play-all-btn" class="btn btn-primary" aria-label="播放全部歌曲" title="播放全部歌曲">
                     <i class="fa-solid fa-play"></i> 播放全部
                 </button>
-
-
                 <button id="pl-edit-btn" class="btn btn-secondary" aria-label="编辑歌单" title="编辑歌单">
                     <i class="fa-solid fa-pen-to-square"></i> 编辑
                 </button>
@@ -825,7 +801,6 @@
                         <th class="pl-col-title" role="columnheader" aria-sort="none">歌曲标题</th>
                         <th class="pl-col-artist" role="columnheader" aria-sort="none">歌手</th>
                         <th class="pl-col-album" role="columnheader" aria-sort="none">专辑</th>
-
                         <th class="pl-col-action" role="columnheader">操作</th>
                     </tr>
                 </thead>
@@ -839,7 +814,6 @@
         </div>
         <div id="pl-empty-songs" class="pl-empty-songs hidden" aria-live="polite">
             <p>歌单中还没有歌曲</p>
-
         </div>
     </section>
 </article>
@@ -893,26 +867,7 @@
     </div>
 </div>
 
-<!-- 添加歌曲模态框 -->
-<div id="pl-add-songs-modal" class="pl-modal">
-    <div class="pl-modal-content">
-        <div class="pl-modal-header">
-            <h3>添加歌曲</h3>
-            <button id="pl-close-add-songs-btn" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
-        </div>
-        <div class="pl-modal-body">
-            <div class="pl-search-container">
-                <input type="text" id="pl-search-song-input" class="pl-search-input" placeholder="搜索歌曲、歌手或专辑">
-            </div>
-            <div id="pl-search-results" class="pl-search-results">
-                <p style="text-align: center; padding: 20px; color: var(--text-muted);">搜索歌曲添加到歌单</p>
-            </div>
-        </div>
-        <div class="pl-modal-footer">
-            <button id="pl-cancel-add-songs-btn" class="btn btn-secondary">取消</button>
-        </div>
-    </div>
-</div>
+<!-- 已移除添加歌曲模态框 -->
 
 
 
@@ -1488,11 +1443,6 @@ async function deletePlaylist() {
 }
 
 
-
-
-
-
-
 // 更新侧边栏中歌单名称的函数
 function updateSidebarPlaylist(playlistId, newName = null, newSongCount = null) {
     // 查找侧边栏中对应歌单ID的元素
@@ -1608,173 +1558,32 @@ function setupCoverPreview() {
     });
 }
 
-// 搜索歌曲函数
-async function searchSongs(keyword) {
-    if (!keyword.trim()) {
-        document.getElementById('pl-search-results').innerHTML = 
-            '<p style="text-align: center; padding: 20px; color: var(--text-muted);">搜索歌曲添加到歌单</p>';
-        return;
-    }
-    
-    try {
-        // 显示加载状态
-        document.getElementById('pl-search-results').innerHTML = 
-            '<p style="text-align: center; padding: 20px; color: var(--text-muted);">搜索中...</p>';
-        
-        // 这里应该调用搜索歌曲的API，暂时模拟搜索结果
-        // 实际项目中应该替换为真实的API调用
-        const response = await fetch(`/music/search?keywords=${encodeURIComponent(keyword)}`);
-        const data = await response.json();
-        
-        const resultsContainer = document.getElementById('pl-search-results');
-        
-        if (data.code === 200 && data.result && data.result.songs) {
-            const songs = data.result.songs;
-            
-            if (songs.length === 0) {
-                resultsContainer.innerHTML = 
-                    '<p style="text-align: center; padding: 20px; color: var(--text-muted);">未找到相关歌曲</p>';
-                return;
-            }
-            
-            // 构建搜索结果HTML
-            let html = '<ul class="search-results-list">';
-            songs.forEach(song => {
-                const artists = song.ar ? song.ar.map(ar => ar.name).join(', ') : '未知歌手';
-                const album = song.al ? song.al.name : '未知专辑';
-                
-                html += `
-                <li class="search-result-item">
-                    <div class="search-result-info">
-                        <div class="search-result-name">${song.name}</div>
-                        <div class="search-result-meta">${artists} - ${album}</div>
-                    </div>
-                    <button class="btn btn-sm btn-primary add-song-btn" data-song-id="${song.id}">
-                        添加
-                    </button>
-                </li>`;
-            });
-            html += '</ul>';
-            
-            resultsContainer.innerHTML = html;
-            
-            // 添加点击事件监听器
-            document.querySelectorAll('.add-song-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const songId = this.getAttribute('data-song-id');
-                    const songName = this.closest('.search-result-item').querySelector('.search-result-name').textContent;
-                    addSongToPlaylist(songId, songName);
-                });
-            });
-        } else {
-            resultsContainer.innerHTML = 
-                '<p style="text-align: center; padding: 20px; color: var(--text-muted);">搜索失败，请重试</p>';
-        }
-    } catch (error) {
-        document.getElementById('pl-search-results').innerHTML = 
-            '<p style="text-align: center; padding: 20px; color: var(--text-muted);">搜索失败，请重试</p>';
-    }
-}
-
-// 添加歌曲到歌单
-async function addSongToPlaylist(songId, songName) {
-    const playlistId = getPlaylistId();
-    
-    if (!songId || !playlistId) {
-        showToast('参数错误，无法添加歌曲', 'error');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/user/playlist/${playlistId}/add_song`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ song_id: songId })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            // 成功添加歌曲后，刷新歌单详情
-            // 清除缓存，强制重新加载
-            window.lastPlaylistId = null;
-            await loadPlaylistDetail();
-            
-            // 获取更新后的歌曲数量并更新侧边栏
-            const totalSongs = document.querySelectorAll('#pl-songs-list tr').length;
-            updateSidebarPlaylist(playlistId, null, totalSongs);
-            
-            showToast(`歌曲"${songName}"已添加到歌单`);
-        } else {
-            showToast(data.message || '添加歌曲失败', 'error');
-        }
-    } catch (error) {
-        showToast('网络错误，添加歌曲失败', 'error');
-    }
-}
-
-// 初始化搜索功能（带防抖）
-function setupSearch() {
-    let searchTimeout;
-    const searchInput = document.getElementById('pl-search-song-input');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                searchSongs(e.target.value);
-            }, 300);
-        });
-    }
-}
+// 已移除搜索歌曲和添加歌曲相关功能
 
 // 初始化所有事件监听器
 function initEventListeners() {
     // 模态框相关 - 添加存在性检查
     const editBtn = document.getElementById('pl-edit-btn');
     const deleteBtn = document.getElementById('pl-delete-btn');
-    const addToBtn = document.getElementById('pl-add-to-btn');
-    const addSongsBtn = document.getElementById('pl-add-songs-btn');
     
     if (editBtn) editBtn.addEventListener('click', openEditModal);
     if (deleteBtn) deleteBtn.addEventListener('click', openDeleteModal);
-    if (addToBtn) addToBtn.addEventListener('click', openAddSongModal);
-    if (addSongsBtn) addSongsBtn.addEventListener('click', openAddSongModal);
     
-    // 为空歌单状态添加添加歌曲按钮
-    const emptySongsContainer = document.getElementById('pl-empty-songs');
-    if (emptySongsContainer) {
-        let addSongBtn = emptySongsContainer.querySelector('#pl-add-songs-btn');
-        if (!addSongBtn) {
-            // 如果不存在，创建添加歌曲按钮
-            addSongBtn = document.createElement('button');
-            addSongBtn.id = 'pl-add-songs-btn';
-            addSongBtn.className = 'btn btn-primary';
-            addSongBtn.innerHTML = '<i class="fa-solid fa-plus"></i> 添加歌曲';
-            addSongBtn.addEventListener('click', openAddSongModal);
-            emptySongsContainer.appendChild(addSongBtn);
-        }
-    }
+    // 为空歌单状态不添加按钮
     
     // 关闭模态框按钮 - 添加存在性检查
     const closeEditBtn = document.getElementById('pl-close-edit-btn');
     const closeDeleteBtn = document.getElementById('pl-close-delete-btn');
-    const closeAddSongsBtn = document.getElementById('pl-close-add-songs-btn');
     
     if (closeEditBtn) closeEditBtn.addEventListener('click', closeAllModals);
     if (closeDeleteBtn) closeDeleteBtn.addEventListener('click', closeAllModals);
-    if (closeAddSongsBtn) closeAddSongsBtn.addEventListener('click', closeAllModals);
     
     // 模态框取消按钮 - 添加存在性检查
     const cancelEditBtn = document.getElementById('pl-cancel-edit-btn');
     const cancelDeleteBtn = document.getElementById('pl-cancel-delete-btn');
-    const cancelAddSongsBtn = document.getElementById('pl-cancel-add-songs-btn');
     
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', closeAllModals);
     if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', closeAllModals);
-    if (cancelAddSongsBtn) cancelAddSongsBtn.addEventListener('click', closeAllModals);
     
     // 模态框确认按钮 - 添加存在性检查
     const confirmEditBtn = document.getElementById('pl-confirm-edit-btn');
@@ -1809,8 +1618,7 @@ function initEventListeners() {
     // 设置封面预览
     setupCoverPreview();
     
-    // 设置搜索功能
-    setupSearch();
+    // 已移除搜索功能
 }
 
 // 页面加载完成后初始化

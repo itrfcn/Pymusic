@@ -759,8 +759,7 @@
                         : await window.myMusicPage.parsePlaylist(input);
                 }
             } catch (error) {
-                // 解析失败时打印错误并提示
-                console.error('解析错误:', error);
+                // 解析失败时提示
                 window.myMusicPage.hideStatus();
                 window.myMusicPage.showError('解析失败，请检查输入是否正确');
             }
@@ -854,7 +853,6 @@
                     window.myMusicPage.renderSongResult(songInfo);
                 } else {
                     // jx接口失败，尝试备用song接口
-                    console.warn('jx接口失败，尝试使用song接口');
                     const songResponse = await fetch(`/music/song/${id}`);
                     const songData = await songResponse.json();
                     
@@ -887,7 +885,6 @@
                 }
             } catch (error) {
                 // 解析失败处理
-                console.error('解析歌曲失败:', error);
                 window.myMusicPage.hideStatus();
                 window.myMusicPage.showError('无法获取歌曲信息，请检查ID是否正确');
             }
@@ -950,7 +947,6 @@
                 }
             } catch (error) {
                 // 解析失败处理
-                console.error('解析歌单失败:', error);
                 window.myMusicPage.hideStatus();
                 window.myMusicPage.showError('无法获取歌单信息，请检查ID是否正确');
             }
@@ -1356,9 +1352,7 @@
                 try {
                     // 调用底部播放器播放整个歌单（从第0首开始）
                     window.playTrackFromPlaylist(standardizedTracks, 0);
-                    console.log('成功调用底部播放器播放歌单');
                 } catch (error) {
-                    console.error('底部播放器调用失败:', error);
                     window.myMusicPage.showError('播放失败: 底部播放器异常');
                 }
             } else {
@@ -1375,11 +1369,9 @@
          * @returns {boolean} - 播放操作是否成功
          */
         parseAndPlaySong: function(id, name, artist, cover) {
-            console.log('尝试播放歌曲:', { id, name, artist, cover });
             
             // 验证ID有效性
             if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
-                console.error('无效的歌曲ID:', id);
                 window.myMusicPage.showError('无效的歌曲ID');
                 return false;
             }
@@ -1389,15 +1381,12 @@
             
             // 验证ID格式（至少5位数字）
             if (!/^\d{5,}$/.test(cleanId)) {
-                console.error('ID格式无效:', cleanId);
                 window.myMusicPage.showError('歌曲ID格式无效，请输入至少5位数字');
                 return false;
             }
             
             // 优先使用全局播放函数（底部播放器）
-            if (window.playTrackFromPlaylist) {
-                console.log('调用底部播放器播放歌曲');
-                
+            if (window.playTrackFromPlaylist) {                
                 // 准备标准化的歌曲对象（适配播放器）
                 const singleTrack = {
                     id: cleanId,
@@ -1417,12 +1406,10 @@
                     window.myMusicPage.showStatus(`正在播放: ${name || '未知歌曲'} - ${artist || '未知歌手'}`);
                     return true;
                 } catch (error) {
-                    console.error('底部播放器调用失败:', error);
                     window.myMusicPage.showError('播放失败: 底部播放器异常');
                     return false;
                 }
             } else {
-                console.error('未找到底部播放器');
                 window.myMusicPage.showError('播放器功能不可用，请刷新页面重试');
                 return false;
             }
@@ -1507,7 +1494,6 @@
                 // 执行初始化
                 window.myMusicPage.init();
                 window.myMusicPage.initialized = true;
-                console.log('网易云音乐解析页面初始化完成');
             }
         }
         

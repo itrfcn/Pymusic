@@ -3,21 +3,25 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask, render_template, request, session, redirect, url_for
+from config import current_config
+# 导入蓝图
 from apps.music import music
 from apps.user import user
-from config import current_config
+# 导入清理历史数据的钩子
 from apps.clean_history_data import register_cleanup_hook
 
-
+#工厂函数，用于创建Flask应用实例
 def create_app(config_name=None):
     """创建Flask应用实例"""
     app = Flask(__name__)
     
     # 加载配置
-    app.config.from_object(current_config)
+    app.config.from_object(config_name)
     
     # 配置日志
     configure_logging(app)
+    
+    # 注册蓝图
     app.register_blueprint(music)
     app.register_blueprint(user)
     
@@ -76,7 +80,7 @@ def create_app(config_name=None):
 
     return app
 
-
+# 配置应用日志
 def configure_logging(app):
     """配置应用日志"""
     # 如果是调试模式，不配置文件日志
@@ -108,7 +112,7 @@ def configure_logging(app):
     app.logger.info('应用启动')
 
 
-app = create_app()
+app = create_app(current_config)
 if __name__ == '__main__':
     # 关键添加：host='0.0.0.0'（允许外部访问），port可自定义（默认5000）
     app.run(

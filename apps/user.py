@@ -1,12 +1,8 @@
-from flask import Blueprint, request, render_template, redirect, url_for, flash, session, jsonify, current_app
+from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify, current_app
 from apps.tool.Mysql import Mysql
-from apps.tool.JS import JS
 import hashlib
 from functools import wraps
-import json
-from typing import Dict, Union, List
-import requests
-from apps.music import get_song_detail, WEB_HEADERS
+from apps.music import get_song_detail
 
 
 def login_required(f):

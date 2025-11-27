@@ -6,11 +6,10 @@
     <title>音悦台 - 发现好音乐</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <icon rel="icon" href="{{ url_for('static', filename='img/logo.png') }}" type="image/png">
+    <icon rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon" sizes="32x32">
 </head>
 <body>
-    <!-- 移动端菜单切换按钮 -->
- 
+
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar sidebar-closed">
@@ -35,7 +34,7 @@
                 </ul>
             </nav>
             <nav class="menu">
-                <h2 class="menu-title">我的歌单</h2>
+                <h2 class="menu-title">歌单</h2>
                 {% if session.get('username') %}
                 <button id="create-playlist-btn" class="btn-create-playlist">
                     <i class="fa-solid fa-plus"></i> 创建歌单
@@ -68,10 +67,11 @@
                 <div class="user-profile">
                     {% if session.get('username') %}
                         <span class="user-name">{{ session.get('username') }}</span>
+                        <!-- 待优化 -->
                         <a href="/user/logout" class="btn btn-logout">退出</a>
                     {% else %}
-                        <a href="/user/login" class="btn btn-login">登录</a>
-                        <a href="/user/register" class="btn btn-register">注册</a>
+                        <a href="/login" class="btn btn-login">登录</a>
+                        <a href="/register" class="btn btn-register">注册</a>
                     {% endif %}
                 </div>
             </header>
@@ -1019,7 +1019,7 @@
                 const songName = songInfo.querySelector('h3')?.textContent || '未知歌曲';
                 const artist = songInfo.querySelector('p')?.textContent || '未知歌手';
                 const coverElement = songInfo.querySelector('img');
-                const coverUrl = coverElement ? coverElement.src : '/static/img/default_cover.jpg';
+                const coverUrl = coverElement ? coverElement.src : '/static/img/logo.png';
                 
                 // 假设audio元素存储了当前歌曲ID
                 const audioElement = document.getElementById('audio-player');

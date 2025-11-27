@@ -9,7 +9,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect(url_for('user.login'))
+            return redirect('/login')
         return f(*args, **kwargs)
 
     return decorated_function
@@ -17,7 +17,7 @@ def login_required(f):
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
-
+# 用户输入验证函数
 def validate_user_input(username, password, confirm_password=None):
     """验证用户输入"""
     if not username or not password:
@@ -35,97 +35,89 @@ def validate_user_input(username, password, confirm_password=None):
     return None
 
 
-@user.route('/login', methods=['GET', 'POST'])
+@user.route('/login', methods=['POST'])
 def login():
-    if request.method == 'POST':
-        # 统一获取用户名和密码
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
+    # 统一获取用户名和密码
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
 
-        # 使用统一验证函数
-        error = validate_user_input(username, password)
-        if error:
-            return jsonify({'message': error}), 400
+    # 使用统一验证函数
+    error = validate_user_input(username, password)
+    if error:
+        return jsonify({'message': error}), 400
 
-        # 密码加密处理
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-        try:
-            with Mysql() as mysql:
-                # 使用参数化查询防止SQL注入
-                user_list = mysql.sql(
-                    "SELECT id, username FROM tabl_user WHERE username=%s AND password=%s",
-                    [username, hashed_password]
-                )
+    # 密码加密处理
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    try:
+        with Mysql() as mysql:
+            # 使用参数化查询防止SQL注入
+            user_list = mysql.sql(
+                "SELECT id, username FROM tabl_user WHERE username=%s AND password=%s",
+                [username, hashed_password]
+            )
 
-                # 检查返回结果是否为列表且不为空
-                if isinstance(user_list, list) and len(user_list) > 0:
-                    # 设置用户会话
-                    current_app.logger.info(f"用户登录成功: {username}")
-                    session['user_id'] = user_list[0]['id']
-                    session['username'] = user_list[0]['username']
-                    return jsonify({'message': '登录成功'}), 200
-                else:
-                    current_app.logger.warning(f"用户登录失败 - 账号密码错误: {username}")
-                    return jsonify({'message': '账号密码错误'}), 401
+            # 检查返回结果是否为列表且不为空
+            if isinstance(user_list, list) and len(user_list) > 0:
+                # 设置用户会话
+                current_app.logger.info(f"用户登录成功: {username}")
+                session['user_id'] = user_list[0]['id']
+                session['username'] = user_list[0]['username']
+                return jsonify({'message': '登录成功'}), 200
+            else:
+                current_app.logger.warning(f"用户登录失败 - 账号密码错误: {username}")
+                return jsonify({'message': '账号密码错误'}), 401
 
-        except Exception as e:
-            # 记录详细错误日志
-            current_app.logger.error(f"登录错误: {str(e)}")
-            return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-    # GET请求显示登录页面
-    return render_template('user/login.html')
+    except Exception as e:
+        # 记录详细错误日志
+        current_app.logger.error(f"登录错误: {str(e)}")
+        return jsonify({'message': '系统错误，请稍后重试'}), 500
 
 
-@user.route('/register', methods=['GET', 'POST'])
+
+@user.route('/register', methods=['POST'])
 def register():
-    if request.method == 'POST':
-        # 获取注册信息
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        confirm_password = request.form.get('confirm_password', '').strip()
+    # 获取注册信息
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
 
-        # 使用统一验证函数
-        error = validate_user_input(username, password, confirm_password)
-        if error:
-            return jsonify({'message': error}), 400
+    # 使用统一验证函数
+    error = validate_user_input(username, password, confirm_password)
+    if error:
+        return jsonify({'message': error}), 400
 
-        try:
-            with Mysql() as mysql:
-                # 检查用户名是否已存在
-                existing_user = mysql.sql(
-                    "SELECT id FROM tabl_user WHERE username=%s",
-                    [username]
-                )
+    try:
+        with Mysql() as mysql:
+            # 检查用户名是否已存在
+            existing_user = mysql.sql(
+                "SELECT id FROM tabl_user WHERE username=%s",
+                [username]
+            )
 
-                if isinstance(existing_user, list) and len(existing_user) > 0:
-                    return jsonify({'message': '用户名已存在'}), 400
+            if isinstance(existing_user, list) and len(existing_user) > 0:
+                return jsonify({'message': '用户名已存在'}), 400
 
-                # 插入新用户
-                hashed_password = hashlib.sha256(password.encode()).hexdigest()
-                result = mysql.sql(
-                    "INSERT INTO tabl_user (username, password) VALUES (%s, %s)",
-                    [username, hashed_password]
-                )
+            # 插入新用户
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            result = mysql.sql(
+                "INSERT INTO tabl_user (username, password) VALUES (%s, %s)",
+                [username, hashed_password]
+            )
 
-                if isinstance(result, tuple) and result[0] > 0:
-                    return jsonify({'message': '注册成功，请登录'}), 200
-                else:
-                    return jsonify({'message': '注册失败，请重试'}), 500
+            if isinstance(result, tuple) and result[0] > 0:
+                return jsonify({'message': '注册成功，请登录'}), 200
+            else:
+                return jsonify({'message': '注册失败，请重试'}), 500
 
-        except Exception as e:
-            current_app.logger.error(f"注册错误: {str(e)}")
-            return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-    # GET请求显示注册页面
-    return render_template('user/register.html')
-
+    except Exception as e:
+        current_app.logger.error(f"注册错误: {str(e)}")
+        return jsonify({'message': '系统错误，请稍后重试'}), 500
 
 @user.route('/logout')
 @login_required
 def logout():
     session.clear()
-    return redirect(url_for('user.login'))
+    return redirect('/')
 
 
 @user.route('/create_playlist', methods=['POST'])

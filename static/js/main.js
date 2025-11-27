@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // 构建正确的partials URL格式
-        const partialUrl = `/partials/${pageName}`;
+        const partialUrl = `/index/${pageName}`;
 
         // 发起fetch请求获取页面内容
         fetch(partialUrl)

@@ -867,17 +867,13 @@
     </div>
 </div>
 
-<!-- 已移除添加歌曲模态框 -->
-
-
-
 <script>
 // 歌单详情页相关JavaScript代码
 
 // 获取歌单ID（从URL路径中解析）
 function getPlaylistId() {
-    // 匹配 /playlist/ 后面的数字ID
-    const pathRegex = /\/playlist\/(\d+)/;
+    // 匹配 /playlist_detail?id= 后面的数字ID
+    const pathRegex = /\/playlist_detail\?id=(\d+)/;
     const match = window.location.pathname.match(pathRegex);
     if (match && match[1]) {
         return match[1];

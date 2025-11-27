@@ -11,15 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const playlistId = playlistLink.getAttribute('data-playlist-id');
             if (playlistId) {
-                // 更新URL，确保URL中的歌单ID与要查看的歌单一致
-                history.replaceState(null, null, `/playlist/${playlistId}`);
-                
                 // 添加高亮样式
                 document.querySelectorAll('.sidebar li').forEach(li => li.classList.remove('active'));
                 playlistLink.closest('li').classList.add('active');
-                
-                // 不直接调用loadPlaylistDetail，让页面底部的代码根据更新后的URL自动加载
-                // 这样可以避免重复请求
             }
         }
     });
@@ -50,9 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let coverElement = '';
                         if (playlist.cover_url && playlist.cover_url.trim()) { // 更宽松的验证，只检查非空和非空白字符串
                             try {
-                                // 添加调试信息
 
-                                
                                 let imgSrc = '';
                                 const coverUrl = playlist.cover_url;
                                 
@@ -102,13 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             </a>
                         `;
                         
-                        // 添加调试信息
-
-
-                        
                         playlistsContainer.appendChild(li);
                         
-                        // 添加歌单点击事件，无刷新加载歌单详情
+                        // 点击歌单导航链接时触发
                         const playlistLink = li.querySelector('.playlist-nav-link');
                         playlistLink.addEventListener('click', function(e) {
                             e.preventDefault();
@@ -228,23 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 导航到歌单详情（避免与playlist_detail.html中的loadPlaylistDetail冲突）
     function navigateToPlaylistDetail(playlistId) {
         // 使用loadPage函数加载歌单详情页面
-        loadPage(`playlist_detail`, false); // 去掉partials/前缀，因为loadPage函数内部会添加
-        
+        loadPage(`playlist_detail`, false); 
         // 确保播放列表详情加载完成后，更新URL
-        setTimeout(() => {
-            // 手动更新URL，但不刷新页面
-            const url = `/playlist/${playlistId}`;
-            window.history.pushState({ path: url }, '', url);
-            
-            // 不调用initPlaylistDetail，因为playlist_detail.html页面加载时已经会自动初始化
-            // 这样可以避免重复请求歌单数据
-        }, 200);
+        const url = `/playlist_detail?id=${playlistId}`;
+        window.history.pushState({ path: url }, '', url);
     }
-    
     // --- SPA Navigation ---
     // 加载页面函数
     function loadPage(url, pushState = true) {
-        // 直接使用/partials路由格式，确保与Flask路由匹配
+        // 直接使用index路由格式，确保与Flask路由匹配
         let pageName;
         if (url === '/') {
             pageName = 'discover';
@@ -252,35 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
             pageName = url.substring(1); // 去掉开头的/
         } else {
             pageName = url;
-        }
-        
-        // 检查历史页面的登录状态
-        if (pageName === 'history') {
-            const userInfo = document.querySelector('.user-info');
-            if (userInfo && userInfo.textContent.includes('登录')) {
-                // 未登录，显示登录提示
-                if (mainContent) {
-                    mainContent.innerHTML = `
-                        <div class="login-prompt">
-                            <h2>请先登录</h2>
-                            <p>播放历史功能需要登录后才能使用</p>
-                            <button class="btn-primary" onclick="window.location.href='/user/login'">立即登录</button>
-                        </div>
-                    `;
-                }
-                // 更新浏览器历史记录
-                if (pushState) {
-                    window.history.pushState({ path: url }, '', url);
-                }
-                return;
-            }
-        }
-        
-        // 构建正确的partials URL格式
-        const partialUrl = `/index/${pageName}`;
+        }  
+
+        // 构建正确的index URL格式
+        const indexUrl = `/index/${pageName}`;
 
         // 发起fetch请求获取页面内容
-        fetch(partialUrl)
+        fetch(indexUrl)
             .then(response => {
                 // 检查响应是否成功
                 if (!response.ok) {
@@ -305,9 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (pushState) {
                     window.history.pushState({ path: url }, '', url);
                 }
-                // 附加动态事件监听器
-                attachDynamicEventListeners();
-                
+
                 // 根据页面URL调用特定页面的初始化函数
                 if (pageName === 'my-music') {
                     // 给页面内容一些渲染时间
@@ -333,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
       }
 
-    // 执行动态加载的partial内容中的<script>标签
+    // 执行动态加载的子页面内容中的<script>标签
     function executeEmbeddedScripts(container) {
         // 清理之前注入的动态脚本以避免重复
         document.querySelectorAll('script[data-dynamic-script="true"]').forEach(s => s.remove());
@@ -377,31 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(newScript);
         });
     }
-
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
     
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 歌单详情页相关JS代码已迁移到playlist_detail.html
-    
-    // 页面加载函数已在上方定义，确保使用完整实现
-    
-    // 附加动态事件监听器
-    function attachDynamicEventListeners() {
-        // 歌单详情页相关事件监听器已迁移到playlist_detail.html
-    }
 
     // 简化的导航链接点击事件处理
     const navLinks = document.querySelectorAll('a.nav-link');
@@ -1265,6 +1197,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     // 添加播放器动画
     addPlayerAnimations();
-    // 附加初始事件监听器
-    attachDynamicEventListeners();
 });

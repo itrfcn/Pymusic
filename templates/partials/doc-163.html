@@ -29,7 +29,6 @@
                     <option value="higher">较高音质</option>
                     <option value="exhigh">极高音质</option>
                     <option value="lossless">无损音质</option>
-                    <option value="hires">Hi-Res音质</option>
                 </select>
                 
                 <!-- 解析按钮：触发解析操作 -->
@@ -39,13 +38,13 @@
         
         <!-- 结果展示区域：初始显示提示，解析后展示结果 -->
         <div id="resultContainer" class="result-container">
-            <div class="initial-hint">
+            <div id="initialHint" class="initial-hint" style="display: block;">
                 <p>请在上方输入网易云音乐链接或ID进行解析</p>
             </div>
         </div>
         
         <!-- 状态显示区域：加载中/解析失败状态，默认隐藏 -->
-        <div id="statusContainer" class="status-container" style="display: none;">
+        <div id="statusContainer" class="status-container" style="display: none; padding: var(--spacing-lg); min-height: 200px;">
             <div id="loadingState" class="loading" style="display: none;">加载中...</div>
             <div id="errorState" class="error" style="display: none;">解析失败，请重试</div>
         </div>
@@ -598,7 +597,6 @@
     /* 状态显示样式 */
     .status-container {
         text-align: center;
-        padding: var(--spacing-lg);
     }
 
     .loading {
@@ -691,6 +689,43 @@
 </style>
 
 <script>
+    // 全局下载工具函数（强制FLAC格式，不跳转，无任何状态提示）
+    function downloadMusicFile(url, songName) {
+        if (!url) return; // 无链接直接返回，不提示
+        
+        fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'omit'
+        }).then(response => {
+            if (!response.ok) throw new Error('下载失败');
+            // 强制FLAC后缀，清洗文件名
+            const safeName = (songName || '未知歌曲').replace(/[\\/:*?"<>|]/g, '_');
+            const fileName = `${safeName}.flac`;
+            
+            // 转换为FLAC格式Blob并触发下载
+            return response.blob().then(originalBlob => {
+                const flacBlob = new Blob([originalBlob], { type: 'audio/flac' });
+                const blobUrl = URL.createObjectURL(flacBlob);
+                
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = fileName;
+                link.target = '_self';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                
+                link.click();
+                // 清理临时资源（无完成提示）
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 200);
+            });
+        }).catch(error => {
+            console.error('下载错误：', error); // 仅控制台打印错误，不显示给用户
+        });
+    }
     // 全局页面对象：存储所有状态和功能
     window.myMusicPage = {
         currentMethod: 'link', // 默认解析方式：歌曲解析
@@ -713,8 +748,20 @@
                 input.placeholder = window.myMusicPage.currentMethod === 'link' 
                     ? '请输入网易云音乐链接或ID' 
                     : '请输入歌单链接或ID';
+                
+                // 控制音质选择下拉框的显示：歌单解析时隐藏
+                const qualitySelect = document.getElementById('qualitySelect');
+                if (qualitySelect) {
+                    qualitySelect.style.display = window.myMusicPage.currentMethod === 'playlist' ? 'none' : 'block';
+                }
             };
         });
+        
+        // 初始化时根据默认解析方式设置下拉框显示状态
+        const qualitySelect = document.getElementById('qualitySelect');
+        if (qualitySelect) {
+            qualitySelect.style.display = window.myMusicPage.currentMethod === 'playlist' ? 'none' : 'block';
+        }
         
         // 2. 解析按钮点击事件：触发解析函数
         document.getElementById('parseButton').onclick = window.myMusicPage.parseMusic;
@@ -722,10 +769,7 @@
         // 3. 输入框回车事件：按Enter键也能触发解析
         document.getElementById('musicInput').onkeypress = function(e) {
             if (e.key === 'Enter') window.myMusicPage.parseMusic();
-        };
-        
-        // 清除可能的外部事件干扰
-        document.getElementById('parseButton').onclick = window.myMusicPage.parseMusic;
+        };  
     },
         
         /**
@@ -740,7 +784,8 @@
                 return;
             }
             
-            // 显示加载状态
+            // 重置UI并显示加载状态
+            window.myMusicPage.resetUI();
             window.myMusicPage.showLoading();
             
             // 解析输入内容，识别是歌曲/歌单/专辑ID或链接
@@ -748,9 +793,9 @@
             
             try {
                 // 根据解析结果分发到对应解析函数
-                if (parsedContent.type === 'song') {
+                if (window.myMusicPage.currentMethod === 'link') {
                     await window.myMusicPage.parseSong(parsedContent.id); // 解析歌曲
-                } else if (parsedContent.type === 'playlist') {
+                } else if (window.myMusicPage.currentMethod === 'playlist') {
                     await window.myMusicPage.parsePlaylist(parsedContent.id); // 解析歌单
                 } else {
                     // 无法自动识别时，按当前选择的解析方式尝试解析
@@ -759,8 +804,7 @@
                         : await window.myMusicPage.parsePlaylist(input);
                 }
             } catch (error) {
-                // 解析失败时提示
-                window.myMusicPage.hideStatus();
+                // 解析失败时提示：直接调用showError
                 window.myMusicPage.showError('解析失败，请检查输入是否正确');
             }
         },
@@ -768,7 +812,7 @@
         /**
          * 解析输入内容：提取ID和类型（歌曲/歌单）
          * @param {string} input - 输入框内容（链接或ID）
-         * @returns {object} - {type: 'song'/'playlist'/'unknown', id: 提取的ID}
+         * @returns {object} - {status: 'success'/'error', id: 提取的ID}
          */
         parseInputContent: function(input) {
             // 正则表达式：匹配歌曲链接中的ID
@@ -780,28 +824,28 @@
             
             let match;
             
-            // 1. 纯数字ID：默认视为歌曲ID
+            // 1. 纯数字ID：直接返回ID
             if (/^\d+$/.test(input)) {
-                return { type: 'song', id: input };
+                return { status: 'success', id: input };
             }
             
             // 2. 匹配歌曲链接：提取歌曲ID
             if ((match = songRegex.exec(input))) {
-                return { type: 'song', id: match[1] || match[2] };
+                return { status: 'success', id: match[1] };
             }
             
             // 3. 匹配歌单链接：提取歌单ID
             if ((match = playlistRegex.exec(input))) {
-                return { type: 'playlist', id: match[1] || match[2] };
+                return { status: 'success', id: match[1] };
             }
             
             // 4. 匹配短链接：简化处理为歌曲ID
             if ((match = shortLinkRegex.exec(input))) {
-                return { type: 'song', id: match[1] };
+                return { status: 'success', id: match[1] };
             }
             
             // 无法识别的内容
-            return { type: 'unknown', id: input };
+            return { status: 'error', id: null };
         },
         
         /**
@@ -810,9 +854,6 @@
          */
         parseSong: async function(id) {
             try {
-                // 显示状态提示
-                window.myMusicPage.showStatus('正在获取歌曲信息...');
-                
                 // 获取选中的音质
                 const quality = document.getElementById('qualitySelect').value;
                 
@@ -831,13 +872,9 @@
                         name: data.name || '未知歌曲',
                         ar_name: data.ar_name || data.artist || '未知歌手',
                         al_name: data.al_name || data.album || '未知专辑',
-                        pic: data.pic || data.coverImgUrl || '',
-                        // 转换音质值为中文显示
-                        level: quality === 'standard' ? '标准' : 
-                               quality === 'higher' ? '较高' : 
-                               quality === 'exhigh' ? '极高' : 
-                               quality === 'lossless' ? '无损' : 'Hi-Res',
-                        size: data.size ? window.myMusicPage.formatFileSize(data.size) : '未知',
+                        pic: data.pic || '',
+                        level: data.level || '未知',
+                        size: data.size || '未知',
                         url: data.url // 下载链接
                     };
                     
@@ -851,40 +888,12 @@
                     
                     // 渲染歌曲结果到页面
                     window.myMusicPage.renderSongResult(songInfo);
-                } else {
-                    // jx接口失败，尝试备用song接口
-                    const songResponse = await fetch(`/music/song/${id}`);
-                    const songData = await songResponse.json();
-                    
-                    // 备用接口请求成功
-                    if (songData.code === 200 && songData.songs && songData.songs.length > 0) {
-                        const song = songData.songs[0];
-                        const songInfo = {
-                            id: song.id,
-                            name: song.name,
-                            ar_name: song.artists ? song.artists.map(a => a.name).join('/') : '未知歌手',
-                            al_name: song.album ? song.album.name : '未知专辑',
-                            pic: song.album ? song.album.picUrl : '',
-                            level: '标准',
-                            size: '未知'
-                        };
-                        
-                        // 保存到播放列表
-                        window.myMusicPage.currentTracks = [{
-                            id: songInfo.id, 
-                            name: songInfo.name, 
-                            ar: [{name: songInfo.ar_name}], 
-                            al: {name: songInfo.al_name, picUrl: songInfo.pic}
-                        }];
-                        
-                        // 渲染结果
-                        window.myMusicPage.renderSongResult(songInfo);
-                    } else {
+                }
+                else {
                         throw new Error('歌曲解析失败');
                     }
-                }
             } catch (error) {
-                // 解析失败处理
+                // 解析失败处理：隐藏状态提示后显示错误
                 window.myMusicPage.hideStatus();
                 window.myMusicPage.showError('无法获取歌曲信息，请检查ID是否正确');
             }
@@ -896,25 +905,8 @@
          */
         parsePlaylist: async function(id) {
             try {
-                // 显示状态提示
-                window.myMusicPage.showStatus('正在获取歌单信息...');
-                
-                // 提取纯数字ID（处理可能包含链接的情况）
-                let playlistId = id;
-                if (typeof id === 'string' && id.includes('music.163.com')) {
-                    const idMatch = id.match(/id=(\d+)|\/(\d+)/);
-                    if (idMatch) playlistId = idMatch[1] || idMatch[2];
-                }
-                
-                // 验证歌单ID格式（纯数字）
-                if (!/^\d+$/.test(playlistId)) {
-                    window.myMusicPage.hideStatus();
-                    window.myMusicPage.showError('无效的歌单ID格式，请输入正确的歌单链接或ID');
-                    return;
-                }
-                
                 // 调用接口获取歌单信息
-                const response = await fetch(`/music/playlist/${playlistId}`);
+                const response = await fetch(`/music/playlist/${id}`);
                 const data = await response.json();
                 
                 // 隐藏状态提示
@@ -923,20 +915,27 @@
                 // 接口请求成功（状态码200）
                 if (data.code === 200) {
                     // 处理不同数据结构（兼容不同接口返回格式）
-                    let playlist, tracks;
-                    if (data.result && data.result.tracks) {
-                        playlist = data.result;
-                        tracks = playlist.tracks;
-                    } else if (data.playlist && data.playlist.tracks) {
-                        playlist = data.playlist;
-                        tracks = playlist.tracks;
-                    } else if (data.tracks) {
-                        tracks = data.tracks;
-                        playlist = {name: '歌单', trackCount: tracks.length, creator: {nickname: '未知'}, coverImgUrl: ''};
-                    } else {
-                        window.myMusicPage.showError('歌单数据格式不正确');
-                        return;
-                    }
+                let playlist, tracks;
+                if (data.result) {
+                    playlist = data.result;
+                    // 优先检查标准tracks字段，然后检查't-tracks'字段
+                    tracks = playlist.tracks || playlist['t-tracks'] || [];
+                } else if (data.playlist && data.playlist.tracks) {
+                    playlist = data.playlist;
+                    tracks = playlist.tracks;
+                } else if (data.tracks) {
+                    tracks = data.tracks;
+                    playlist = {name: '歌单', trackCount: tracks.length, creator: {nickname: '未知'}, coverImgUrl: ''};
+                } else {
+                    window.myMusicPage.showError('歌单数据格式不正确');
+                    return;
+                }
+                
+                // 确保tracks是数组
+                if (!Array.isArray(tracks)) {
+                    window.myMusicPage.showError('歌曲列表格式错误');
+                    return;
+                }
                     
                     // 保存歌单歌曲列表（用于播放）
                     window.myMusicPage.currentTracks = tracks;
@@ -946,7 +945,6 @@
                     window.myMusicPage.showError('无法获取歌单信息，请检查ID是否正确');
                 }
             } catch (error) {
-                // 解析失败处理
                 window.myMusicPage.hideStatus();
                 window.myMusicPage.showError('无法获取歌单信息，请检查ID是否正确');
             }
@@ -962,25 +960,6 @@
             div.textContent = text;
             return div.innerHTML;
         },
-        
-        /**
-         * 文件大小格式化函数：将字节数转换为可读格式（B/KB/MB/GB）
-         * @param {number} bytes - 字节数
-         * @returns {string} - 格式化后的文件大小
-         */
-        formatFileSize: function(bytes) {
-            if (typeof bytes !== 'number' || bytes < 0) return '未知';
-            if (bytes === 0) return '0 B';
-            
-            const k = 1024; // 进制：1024
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            // 计算单位索引
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            
-            // 保留2位小数并拼接单位
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        },
-        
         /**
          * 渲染歌曲结果：将歌曲信息显示到页面
          * @param {object} data - 歌曲信息对象
@@ -990,10 +969,8 @@
             
             // 播放按钮点击事件：调用播放函数
             const playBtnClick = `parseAndPlaySong('${data.id}', '${window.myMusicPage.escapeHtml(data.name)}', '${window.myMusicPage.escapeHtml(data.ar_name)}', '${window.myMusicPage.escapeHtml(data.pic || '')}')`;
-            // 下载按钮点击事件：打开下载链接（无链接时提示）
-            const downloadBtnClick = data.url 
-                ? `window.open('${data.url}', '_blank')` 
-                : 'window.myMusicPage.showStatus(\'暂无下载链接\')';
+            // 调用全局下载函数（避免动态拼接JS的转义问题）
+            const downloadBtnClick = `downloadMusicFile('${data.url}', '${window.myMusicPage.escapeHtml(data.name)}-${window.myMusicPage.escapeHtml(data.ar_name)}')`;
             
             // 封面HTML（有图片显示图片，无图片显示占位符）
             const coverHtml = data.pic 
@@ -1019,11 +996,11 @@
                             <div class="song-meta">
                                 <span class="meta-item">
                                     <i class="icon">🎵</i>
-                                    <span>音质：${data.level}</span>
+                                    <span>${data.level}</span>
                                 </span>
                                 <span class="meta-item">
                                     <i class="icon">📁</i>
-                                    <span>大小：${data.size}</span>
+                                    <span>${data.size}</span>
                                 </span>
                             </div>
                         </div>
@@ -1041,6 +1018,8 @@
                     </div>
                 </div>
             `;
+            // 显示结果容器，隐藏状态容器
+            window.myMusicPage.showResult(container.innerHTML);
         },
         
         /**
@@ -1184,11 +1163,11 @@
             
             // 表头单元格
             const headers = [
-                { className: 'col-index', text: '序号', style: 'width: 60px; text-align: center; color: #666;' },
-                { className: 'col-title', text: '歌曲名', style: 'color: #333;' },
-                { className: 'col-artist', text: '歌手', style: 'color: #666;' },
-                { className: 'col-album', text: '专辑', style: 'color: #666;' },
-                { className: 'col-action', text: '操作', style: 'width: 80px;' }
+                { className: 'col-index', text: '序号'},
+                { className: 'col-title', text: '歌曲名'},
+                { className: 'col-artist', text: '歌手'},
+                { className: 'col-album', text: '专辑'},
+                { className: 'col-action', text: '操作'}
             ];
             
             headers.forEach(headerData => {
@@ -1322,8 +1301,14 @@
             tracksContainer.appendChild(table);
             playlistResultDiv.appendChild(tracksContainer);
             
-            // 将整个结果添加到容器
+            // 将整个结果添加到容器并显示
             container.appendChild(playlistResultDiv);
+            // 确保容器可见（不需要调用showResult，因为元素已正确添加）
+            container.style.display = 'block';
+            const statusContainer = document.getElementById('statusContainer');
+            const initialHint = document.getElementById('initialHint');
+            if (statusContainer) statusContainer.style.display = 'none';
+            if (initialHint) initialHint.style.display = 'none';
         },
         
         /**
@@ -1376,20 +1361,11 @@
                 return false;
             }
             
-            // 清理ID（只保留数字）
-            const cleanId = String(id).replace(/[^0-9]/g, '');
-            
-            // 验证ID格式（至少5位数字）
-            if (!/^\d{5,}$/.test(cleanId)) {
-                window.myMusicPage.showError('歌曲ID格式无效，请输入至少5位数字');
-                return false;
-            }
-            
             // 优先使用全局播放函数（底部播放器）
             if (window.playTrackFromPlaylist) {                
                 // 准备标准化的歌曲对象（适配播放器）
                 const singleTrack = {
-                    id: cleanId,
+                    id: id,
                     name: name || '未知歌曲',
                     artists: artist ? [{ name: artist }] : [],
                     album: { 
@@ -1402,8 +1378,6 @@
                 try {
                     // 调用底部播放器播放歌曲
                     window.playTrackFromPlaylist([singleTrack], 0);
-                    // 显示播放状态提示
-                    window.myMusicPage.showStatus(`正在播放: ${name || '未知歌曲'} - ${artist || '未知歌手'}`);
                     return true;
                 } catch (error) {
                     window.myMusicPage.showError('播放失败: 底部播放器异常');
@@ -1414,29 +1388,38 @@
                 return false;
             }
         },
-        
         /**
-         * 显示播放状态提示
-         * @param {string} message - 提示信息
+         * 重置UI状态：清空所有显示内容，恢复初始状态
          */
-        showStatus: function(message) {
-            // 查找或创建状态容器
-            let statusContainer = document.getElementById('playStatus');
-            if (!statusContainer) {
-                statusContainer = document.createElement('div');
-                statusContainer.id = 'playStatus';
-                statusContainer.className = 'play-status';
-                document.body.appendChild(statusContainer);
+        resetUI: function() {
+            const resultContainer = document.getElementById('resultContainer');
+            const statusContainer = document.getElementById('statusContainer');
+            const initialHint = document.getElementById('initialHint');
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            
+            // 清空结果容器
+            resultContainer.innerHTML = '';
+            
+            // 重新添加初始提示
+            if (!initialHint) {
+                const newInitialHint = document.createElement('div');
+                newInitialHint.id = 'initialHint';
+                newInitialHint.className = 'initial-hint';
+                newInitialHint.style.display = 'block';
+                newInitialHint.innerHTML = '<p>请在上方输入网易云音乐链接或ID进行解析</p>';
+                resultContainer.appendChild(newInitialHint);
+            } else {
+                initialHint.style.display = 'block';
             }
             
-            // 显示状态信息
-            statusContainer.innerHTML = `<div class="playing">${message}</div>`;
-            statusContainer.style.display = 'block';
+            // 隐藏状态容器（不占用空间）
+            statusContainer.style.display = 'none';
+            loadingState.style.display = 'none';
+            errorState.style.display = 'none';
             
-            // 5秒后自动隐藏
-            setTimeout(() => {
-                statusContainer.style.display = 'none';
-            }, 5000);
+            // 显示结果容器
+            resultContainer.style.display = 'block';
         },
         
         /**
@@ -1447,9 +1430,13 @@
             const statusContainer = document.getElementById('statusContainer');
             const loadingState = document.getElementById('loadingState');
             const errorState = document.getElementById('errorState');
+            const initialHint = document.getElementById('initialHint');
             
-            // 清空结果容器，显示加载状态
-            resultContainer.innerHTML = '';
+            // 隐藏结果容器（不占用空间）
+            resultContainer.style.display = 'none';
+            if (initialHint) initialHint.style.display = 'none';
+            
+            // 显示状态容器和加载状态
             statusContainer.style.display = 'block';
             loadingState.style.display = 'block';
             errorState.style.display = 'none';
@@ -1457,14 +1444,19 @@
         
         /**
          * 显示错误提示
-         * @param {string} message - 错误信息
          */
         showError: function(message) {
+            const resultContainer = document.getElementById('resultContainer');
             const statusContainer = document.getElementById('statusContainer');
             const loadingState = document.getElementById('loadingState');
             const errorState = document.getElementById('errorState');
+            const initialHint = document.getElementById('initialHint');
             
-            // 显示错误状态
+            // 隐藏结果容器（不占用空间）
+            resultContainer.style.display = 'none';
+            if (initialHint) initialHint.style.display = 'none';
+            
+            // 显示状态容器和错误状态
             statusContainer.style.display = 'block';
             loadingState.style.display = 'none';
             errorState.textContent = message;
@@ -1476,7 +1468,36 @@
          */
         hideStatus: function() {
             const statusContainer = document.getElementById('statusContainer');
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            
+            // 添加元素存在性检查
+            if (statusContainer) statusContainer.style.display = 'none';
+            if (loadingState) loadingState.style.display = 'none';
+            if (errorState) errorState.style.display = 'none';
+        },
+        
+        /**
+         * 显示解析结果
+         * @param {HTMLElement|string} content - 要显示的内容
+         */
+        showResult: function(content) {
+            const resultContainer = document.getElementById('resultContainer');
+            const statusContainer = document.getElementById('statusContainer');
+            const initialHint = document.getElementById('initialHint');
+            
+            // 清空结果容器（如果是字符串内容）
+            if (typeof content === 'string') {
+                resultContainer.innerHTML = content;
+            } else if (content instanceof HTMLElement) {
+                resultContainer.innerHTML = '';
+                resultContainer.appendChild(content);
+            }
+            
+            // 显示结果容器，隐藏状态容器（不占用空间）
+            resultContainer.style.display = 'block';
             statusContainer.style.display = 'none';
+            if (initialHint) initialHint.style.display = 'none';
         }
     };
     

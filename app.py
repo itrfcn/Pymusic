@@ -259,6 +259,28 @@ def _register_routes(app: Flask) -> None:
                            f"页面404: {request.path}")
         return render_template('404.html'), 404
     
+    @app.errorhandler(403)
+    def forbidden(error) -> tuple:
+        """403禁止访问错误处理
+        
+        记录详细错误信息并返回自定义403页面
+        """
+        # 记录详细403错误信息
+        log_request_details(app.logger, request, 'warning', 
+                           f"禁止访问: {request.path}")
+        return '<h1>禁止访问</h1>', 403
+    
+    @app.errorhandler(405)
+    def method_not_allowed(error) -> tuple:
+        """405方法不允许错误处理
+        
+        记录详细错误信息并返回自定义405页面
+        """
+        # 记录详细405错误信息
+        log_request_details(app.logger, request, 'warning', 
+                           f"方法不允许: {request.path}")
+        return redirect("/")
+    
     @app.errorhandler(500)
     def internal_server_error(error) -> tuple:
         """500服务器错误处理

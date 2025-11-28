@@ -52,7 +52,7 @@ def login():
         with Mysql() as mysql:
             # 使用参数化查询防止SQL注入
             user_list = mysql.sql(
-                "SELECT id, username FROM tabl_user WHERE username=%s AND password=%s",
+                "SELECT id, username FROM user WHERE username=%s AND password=%s",
                 [username, hashed_password]
             )
 
@@ -90,7 +90,7 @@ def register():
         with Mysql() as mysql:
             # 检查用户名是否已存在
             existing_user = mysql.sql(
-                "SELECT id FROM tabl_user WHERE username=%s",
+                "SELECT id FROM user WHERE username=%s",
                 [username]
             )
 
@@ -100,7 +100,7 @@ def register():
             # 插入新用户
             hashed_password = hashlib.sha256(password.encode()).hexdigest()
             result = mysql.sql(
-                "INSERT INTO tabl_user (username, password) VALUES (%s, %s)",
+                "INSERT INTO user (username, password) VALUES (%s, %s)",
                 [username, hashed_password]
             )
 

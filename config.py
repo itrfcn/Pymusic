@@ -25,6 +25,8 @@ class Config:
     
     # 网易云音乐API配置
     NETEASE_MUSIC_AES_KEY = os.environ.get('NETEASE_MUSIC_AES_KEY', 'e82ckenh8dichen8').encode()
+    # 网易云音乐Cookie配置
+    NETEASE_MUSIC_COOKIE = os.environ.get('NETEASE_MUSIC_COOKIE', '')
     
     # 日志配置
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')

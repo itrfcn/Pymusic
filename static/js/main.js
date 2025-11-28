@@ -800,7 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function searchMusic(query) {
         try {
             // 发起搜索请求
-            const response = await fetch(`/music/search/${encodeURIComponent(query)}/0`);
+            const response = await fetch(`/music/search?name=${encodeURIComponent(query)}&page=0`);
             const data = await response.json();
             // 如果搜索成功
             if (data.code === 200 && data.result && data.result.songs) {

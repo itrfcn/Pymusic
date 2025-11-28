@@ -72,14 +72,14 @@ def parse_cookie(text: str) -> Dict[str, str]:
 
 def read_cookie() -> str:
     try:
-        cookie_path = os.path.join(current_app.root_path, 'cookie.txt')
-        with open(cookie_path, 'r', encoding='utf-8') as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        current_app.logger.error(f"Cookie文件未找到：{cookie_path}")
+        # 从配置文件中获取cookie
+        cookie = current_app.config.get('NETEASE_MUSIC_COOKIE', '')
+        if cookie:
+            return cookie.strip()
+        current_app.logger.warning("配置中未设置NETEASE_MUSIC_COOKIE")
         return ""
     except Exception as e:
-        current_app.logger.error(f"读取Cookie失败：{str(e)}")
+        current_app.logger.error(f"读取Cookie配置失败：{str(e)}")
         return ""
 
 
@@ -201,6 +201,8 @@ def get_song_lyric(song_id: Union[str, int], cookies: Dict[str, str]) -> Dict[st
 
 
 # ========== 接口路由 ==========
+
+# 解析接口
 @music.route('/jx', methods=['GET', 'POST'])
 def song_parse():
     song_ids = request.args.get('ids') or request.form.get('ids')
@@ -280,9 +282,12 @@ def song_parse():
             "tlyric": song_info.tlyric
         })
 
-
-@music.route('/search/<name>/<int:page>')
-def search_song(name: str, page: int):
+# 搜索接口
+@music.route('/search')
+def search_song():
+    # 从查询参数中获取搜索关键词和页码
+    name = request.args.get('name', '', type=str)
+    page = request.args.get('page', 0, type=int)
     if page < 0:
         page = 0
     offset = page * 50
@@ -297,7 +302,7 @@ def search_song(name: str, page: int):
         current_app.logger.error(f"搜索失败：关键词={name}，页码={page}，错误={str(e)}")
         return jsonify({"code": 500, "message": f"搜索失败：{str(e)}"}), 500
 
-
+# 获取歌单详情接口
 @music.route('/playlist/<int:sid>')
 def get_playlist(sid: int):
     try:
@@ -313,7 +318,7 @@ def get_playlist(sid: int):
             "message": f"获取歌单失败：{str(e)}"
         }), 500
 
-
+# 获取网易云用户歌单接口
 @music.route('/userlist/<int:uid>')
 def userlist(uid: int):
     try:
@@ -328,7 +333,7 @@ def userlist(uid: int):
             "message": f"获取用户歌单失败：{str(e)}"
         }), 500
 
-
+# 获取歌曲播放URL接口
 @music.route('/song/url/<int:song_id>')
 def song_url(song_id: int):
     try:
@@ -360,7 +365,7 @@ def song_url(song_id: int):
             "message": f"服务器内部错误: {str(e)}"
         }), 500
 
-
+# 获取歌曲歌词接口
 @music.route('/song/lyric/<int:song_id>')
 def song_lyric(song_id: int):
     try:
@@ -390,7 +395,7 @@ def song_lyric(song_id: int):
             "message": f"服务器内部错误: {str(e)}"
         }), 500
 
-
+# 获取歌曲封面接口
 @music.route('/song/cover/<int:song_id>')
 def song_cover(song_id: int):
     try:
@@ -412,14 +417,14 @@ def song_cover(song_id: int):
             "data": {"picUrl": "https://picsum.photos/56/56?random=1"}
         })
 
-
+# 获取热门歌单接口
 @music.route('/hot_playlists')
 def hot_playlists():
     try:
         params = {
             'cat': '全部',
             'order': 'hot',
-            'limit': 24,
+            'limit': 100,
             'offset': 0
         }
         resp = requests.get(

@@ -1,11 +1,9 @@
 import json
-import os
 import urllib.parse
 from hashlib import md5
 from random import randrange
 from typing import Dict, List, Union
 from dataclasses import dataclass
-
 import requests
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes

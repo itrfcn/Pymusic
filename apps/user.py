@@ -1,27 +1,33 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify, current_app
+from flask import Blueprint, request, redirect, url_for, session, jsonify, current_app
 from apps.tool.Mysql import Mysql
 import hashlib
 from functools import wraps
 from apps.music import get_song_detail
+import re
 
 
+# 登录验证装饰器
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect('/login')
+            return redirect(url_for('index', page_name='login'))
         return f(*args, **kwargs)
 
     return decorated_function
 
-
+# 注册蓝图
 user = Blueprint('user', __name__, url_prefix='/user')
 
-# 用户输入验证函数
+# 用户输入验证函数（增强防注入）
 def validate_user_input(username, password, confirm_password=None):
     """验证用户输入"""
     if not username or not password:
         return '用户名和密码不能为空'
+
+    # 检测非法字符，防止注入
+    if re.search(r'[<>\"\'%;()&+\\\/\[\]{}\*\?\|\^~`]', username):
+        return '用户名包含非法字符'
 
     if len(username) < 3 or len(username) > 20:
         return '用户名长度应在3-20个字符之间'
@@ -34,7 +40,7 @@ def validate_user_input(username, password, confirm_password=None):
 
     return None
 
-
+# 登录接口
 @user.route('/login', methods=['POST'])
 def login():
     # 统一获取用户名和密码
@@ -73,7 +79,7 @@ def login():
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
 
-
+# 注册接口
 @user.route('/register', methods=['POST'])
 def register():
     # 获取注册信息
@@ -113,13 +119,15 @@ def register():
         current_app.logger.error(f"注册错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
+
+# 注销接口
 @user.route('/logout')
 @login_required
 def logout():
     session.clear()
-    return redirect('/')
+    return redirect(url_for('index'))
 
-
+# 创建歌单接口
 @user.route('/create_playlist', methods=['POST'])
 @login_required
 def create_playlist():
@@ -207,7 +215,7 @@ def create_playlist():
         current_app.logger.error(f"创建歌单错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 获取歌单列表接口
 @user.route('/playlists', methods=['GET'])
 @login_required
 def get_playlists():
@@ -242,19 +250,7 @@ def get_playlists():
         current_app.logger.error(f"获取歌单列表错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
-@user.route('/playlist_detail', methods=['GET'])
-@login_required
-def playlist_detail_page():
-    """
-    歌单详情页面路由 - 重定向到首页，由前端通过动态加载显示
-    GET参数: id (歌单ID)
-    """
-    from flask import redirect, url_for
-    # 重定向到首页，前端会根据需要动态加载歌单详情
-    return redirect(url_for('index'))
-
-
+# 获取歌单详情接口
 @user.route('/playlist/<int:playlist_id>', methods=['GET'])
 @login_required
 def get_playlist_detail(playlist_id):
@@ -340,7 +336,7 @@ def get_playlist_detail(playlist_id):
         current_app.logger.error(f"获取歌单详情错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 添加歌曲到歌单接口
 @user.route('/playlist/<int:playlist_id>/add_song', methods=['POST'])
 @login_required
 def add_song_to_playlist(playlist_id):
@@ -406,7 +402,7 @@ def add_song_to_playlist(playlist_id):
         current_app.logger.error(f"添加歌曲到歌单错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 删除歌单中的歌曲接口
 @user.route('/playlist/<int:playlist_id>/remove_song/<int:song_id>', methods=['DELETE'])
 @login_required
 def remove_song_from_playlist(playlist_id, song_id):
@@ -461,7 +457,7 @@ def remove_song_from_playlist(playlist_id, song_id):
         current_app.logger.error(f"从歌单删除歌曲错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 更新歌单接口
 @user.route('/playlist/<int:playlist_id>', methods=['PUT'])
 @login_required
 def update_playlist(playlist_id):
@@ -540,7 +536,7 @@ def update_playlist(playlist_id):
         current_app.logger.error(f"更新歌单信息错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 删除歌单接口
 @user.route('/playlist/<int:playlist_id>', methods=['DELETE'])
 @login_required
 def delete_playlist(playlist_id):
@@ -586,7 +582,7 @@ def delete_playlist(playlist_id):
         current_app.logger.error(f"删除歌单错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 保存播放历史接口
 @user.route('/save_history', methods=['POST'])
 @login_required
 def save_play_history():
@@ -651,7 +647,7 @@ def save_play_history():
         current_app.logger.error(f"保存播放历史错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
+# 获取播放历史接口
 @user.route('/get_history', methods=['GET'])
 @login_required
 def get_play_history():

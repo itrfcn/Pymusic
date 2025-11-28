@@ -193,7 +193,7 @@ def _register_routes(app: Flask) -> None:
         if page_name in PROTECTED_PAGES and 'user_id' not in session:
             log_request_details(app.logger, request, 'info', 
                                f"未登录用户尝试访问受保护页面: {page_name}，已重定向至登录页")
-            return redirect('/login')
+            return redirect(url_for('index', page_name='login'))
         
         # 记录正常页面访问
         user_status = f"已登录(用户ID:{session.get('user_id')})" if 'user_id' in session else "未登录"
@@ -279,7 +279,7 @@ def _register_routes(app: Flask) -> None:
         # 记录详细405错误信息
         log_request_details(app.logger, request, 'warning', 
                            f"方法不允许: {request.path}")
-        return redirect("/")
+        return redirect(url_for('index'))
     
     @app.errorhandler(500)
     def internal_server_error(error) -> tuple:

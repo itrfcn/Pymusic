@@ -547,7 +547,7 @@
             <button type="submit" class="btn btn-login">
                 <i class="fa fa-check"></i> 注册
             </button>
-            <button type="button" class="btn btn-register" onclick="window.location.href='/user/login'">
+            <button type="button" class="btn btn-register" onclick="window.location.href='/login'">
                 <i class="fa fa-sign-in"></i> 已有账号？登录
             </button>
             <button type="button" class="btn btn-register" onclick="window.location.href='/'">
@@ -651,7 +651,7 @@
                                 // 如果注册成功，跳转到登录页面
                                 if (data.message.includes('注册成功')) {
                                     setTimeout(() => {
-                                        window.location.href = '/user/login';
+                                        window.location.href = '/login';
                                     }, 2000);
                                 }
                             } else if (data === null) {

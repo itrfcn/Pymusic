@@ -181,81 +181,35 @@
     }
 
     .song-details {
-        min-width: 0;
-    }
+            min-width: 0;
+        }
 
-    .song-name {
-        font-size: 1rem;
-        color: #ffffff;
-        margin-bottom: 5px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+        .song-name {
+            font-size: 1rem;
+            color: #ffffff;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-    .song-artist {
-        font-size: 0.85rem;
-        color: #888;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+        .song-artist {
+            font-size: 0.85rem;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
 
-    /* 歌曲数据 */
-    .song-data {
-        display: flex;
-        align-items: center;
-        gap: 30px;
-        color: #888;
-        font-size: 0.9rem;
-    }
-
-    .play-count {
-        display: flex;
-        align-items: center;
-    }
-
-    .play-count::before {
-        content: "";
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M11 5L6 9H2v6h4l5 4V5zm7.5 6c0-2.48-2.02-4.5-4.5-4.5S9 8.52 9 11s2.02 4.5 4.5 4.5 4.5-2.02 4.5-4.5zm0 7c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'/%3E%3C/svg%3E") no-repeat;
-        background-size: contain;
-        margin-right: 6px;
-    }
-
-    /* 排名变化指示器 */
-    .rank-change {
-        display: flex;
-        align-items: center;
-    }
-
-    .rank-up {
-        color: #4CAF50;
-    }
-
-    .rank-up::before {
-        content: "↑";
-        margin-right: 4px;
-    }
-
-    .rank-down {
-        color: #F44336;
-    }
-
-    .rank-down::before {
-        content: "↓";
-        margin-right: 4px;
-    }
-
-    .rank-stable {
-        color: #888;
-    }
-
-    .rank-stable::before {
-        content: "—";
-    }
+        /* 专辑信息样式 */
+        .song-album {
+            font-size: 0.8rem;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
     /* 加载状态 */
     .loading {
@@ -374,35 +328,7 @@
 
         // ====== 工具函数 ======
         
-        /**
-         * 格式化播放次数
-         * @param {number} count - 原始播放次数
-         * @returns {string} 格式化后的播放次数
-         */
-        function formatPlayCount(count) {
-            if (count >= 100000000) {
-                return (count / 100000000).toFixed(1) + '亿';
-            } else if (count >= 10000) {
-                return (count / 10000).toFixed(1) + '万';
-            }
-            return count.toString();
-        }
-
-        /**
-         * 生成随机排名变化数据
-         * @returns {Object} 包含排名变化类型和数值的对象
-         */
-        function generateRandomChange() {
-            const types = ['up', 'down', 'stable'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            
-            if (type === 'stable') {
-                return { type: 'stable' };
-            }
-            
-            const value = Math.floor(Math.random() * 10) + 1;
-            return { type, value };
-        }
+        // 移除模拟数据生成函数，只使用接口返回的实际数据
 
         // ====== 配置和数据 ======
         
@@ -450,16 +376,15 @@
 
                 const data = await response.json();
                 
-                // 转换数据格式以适应渲染需求
+                // 转换数据格式以适应渲染需求，只使用接口返回的实际数据
                 const songs = data.result && data.result.tracks ? 
                     data.result.tracks.map((song, index) => ({
-                        id: song.id || index + 1,
+                        id: song.id,
                         name: song.name || '未知歌曲',
                         artist: song.artists ? song.artists.map(ar => ar.name).join(', ') : '未知歌手',
                         album: song.album ? song.album.name : '未知专辑',
-                        cover: song.album ? song.album.picUrl : 'https://picsum.photos/id/237/300/300',
-                        playCount: song.playCount || Math.floor(Math.random() * 1000000) + 100000,
-                        change: generateRandomChange()
+                        cover: song.album ? song.album.picUrl : '',
+                        // 移除模拟的播放次数和排名变化数据
                     })) : [];
                 
                 // 数据为空时进行重试
@@ -528,38 +453,22 @@
             songs.forEach((song, index) => {
                 const rank = index + 1;
                 
-                // 处理排名变化样式
-                let changeClass = '';
-                let changeText = '';
-                if (song.change.type === 'up') {
-                    changeClass = 'rank-up';
-                    changeText = song.change.value;
-                } else if (song.change.type === 'down') {
-                    changeClass = 'rank-down';
-                    changeText = song.change.value;
-                } else {
-                    changeClass = 'rank-stable';
-                    changeText = '';
-                }
-
                 // 创建歌曲项元素
                 const item = document.createElement('div');
                 item.className = 'ranking-item';
                 item.dataset.id = song.id;
                 item.dataset.type = type;
 
+                // 只显示接口返回的实际数据字段
                 item.innerHTML = `
                 <div class="rank-number ${rank <= 3 ? 'top-' + rank : ''}">${rank}</div>
                 <div class="song-info">
-                    <img src="${song.cover}" alt="${song.name}" class="song-cover">
+                    <img src="${song.cover || 'https://picsum.photos/id/237/300/300'}" alt="${song.name}" class="song-cover">
                     <div class="song-details">
                         <div class="song-name">${song.name}</div>
                         <div class="song-artist">${song.artist}</div>
+                        ${song.album ? `<div class="song-album">${song.album}</div>` : ''}
                     </div>
-                </div>
-                <div class="song-data">
-                    <div class="play-count">${formatPlayCount(song.playCount)}</div>
-                    <div class="rank-change ${changeClass}">${changeText}</div>
                 </div>
             `;
 

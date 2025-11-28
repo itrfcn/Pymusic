@@ -806,13 +806,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.code === 200 && data.result && data.result.songs) {
                 renderSearchResults(data.result.songs);
             } else {
-                // 搜索失败处理
-
                 mainContent.innerHTML = '<p class="error-message">未能找到任何结果。</p>';
             }
         } catch (error) {
-            // 出错处理
-
             mainContent.innerHTML = '<p class="error-message">搜索时发生错误。</p>';
         }
     }

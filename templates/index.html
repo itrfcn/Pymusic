@@ -1126,6 +1126,8 @@
                 confirmBtn.textContent = '确认添加';
                 confirmBtn.style.marginTop = '20px';
                 confirmBtn.style.width = '100%';
+                confirmBtn.style.textAlign = 'center';
+                confirmBtn.style.justifyContent = 'center';
                 
                 confirmBtn.addEventListener('click', addToSelectedPlaylists);
                 playlistsContainer.appendChild(confirmBtn);
@@ -1136,7 +1138,8 @@
                 const selectedPlaylists = [];
                 playlistsContainer.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
                     const playlistId = checkbox.parentElement.dataset.playlistId;
-                    selectedPlaylists.push(playlistId);
+                    const playlistName = checkbox.parentElement.querySelector('.playlist-name').textContent;
+                    selectedPlaylists.push({ id: playlistId, name: playlistName });
                 });
                 
                 if (selectedPlaylists.length === 0) {
@@ -1144,9 +1147,9 @@
                     return;
                 }
                 
-                // 依次添加到每个选中的歌单
-                const promises = selectedPlaylists.map(playlistId => {
-                    return fetch(`/user/playlist/${playlistId}/add_song`, {
+                // 依次添加到每个选中的歌单，单独处理每个请求，允许部分失败
+                const promises = selectedPlaylists.map(playlist => {
+                    return fetch(`/user/playlist/${playlist.id}/add_song`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1156,46 +1159,92 @@
                     .then(response => {
                         // 无论成功失败，都尝试解析JSON
                         return response.json().then(data => {
-                            console.log('接口原始响应数据:', JSON.stringify(data));
-                            if (!response.ok) {
-                                // 非200状态，抛出错误但保留数据
-                                throw new Error(data.message || '添加失败');
-                            }
-                            // 直接返回解析后的数据对象
-                            return data;
+                            console.log(`歌单${playlist.name}响应数据:`, JSON.stringify(data));
+                            // 返回处理结果，包含状态、数据和歌单信息
+                            return {
+                                status: response.ok ? 'fulfilled' : 'rejected',
+                                playlist: playlist,
+                                data: data,
+                                error: !response.ok ? (data.message || '添加失败') : null
+                            };
                         }).catch(error => {
-                            console.error('JSON解析错误:', error);
-                            throw new Error('添加失败');
+                            console.error(`歌单${playlist.name}JSON解析错误:`, error);
+                            return {
+                                status: 'rejected',
+                                playlist: playlist,
+                                error: '添加失败，解析错误'
+                            };
                         });
                     });
                 });
                 
-                Promise.all(promises)
+                // 使用Promise.allSettled处理所有请求，无论成功失败都获取结果
+                Promise.allSettled(promises)
                     .then(results => {
-                        console.log('所有响应结果数组:', JSON.stringify(results));
+                        console.log('所有请求结果:', results);
                         
-                        // 针对用户确认的接口返回格式 {message: "歌曲已在歌单中"} 进行处理
-                        let displayMessage = '歌曲已成功添加到歌单';
+                        // 处理每个请求的结果
+                        const successPlaylists = [];
+                        const failedPlaylists = [];
                         
-                        if (results.length === 1 && typeof results[0] === 'object' && results[0] !== null) {
-                            // 重点处理单个歌单的情况
-                            console.log('单个结果对象属性:', Object.keys(results[0]));
-                            
-                            // 直接访问message属性
-                            if (results[0].message !== undefined && results[0].message !== null) {
-                                displayMessage = results[0].message;
-                                console.log('成功提取message:', displayMessage);
+                        results.forEach(result => {
+                            if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
+                                // 成功添加的歌单
+                                successPlaylists.push(result.value.playlist);
+                                // 更新侧边栏歌单数量
+                                if (typeof updateSidebarPlaylist === 'function') {
+                                    const playlistElement = document.querySelector(`.playlist-item[data-playlist-id="${result.value.playlist.id}"]`);
+                                    if (playlistElement) {
+                                        const songCountElement = playlistElement.querySelector('.song-count');
+                                        if (songCountElement) {
+                                            const currentCount = parseInt(songCountElement.textContent) || 0;
+                                            const newCount = currentCount + 1;
+                                            updateSidebarPlaylist(result.value.playlist.id, null, newCount);
+                                        }
+                                    }
+                                }
+                            } else {
+                                // 失败的歌单
+                                failedPlaylists.push({
+                                    name: result.value.playlist.name,
+                                    error: result.value.error
+                                });
                             }
+                        });
+                        
+                        // 生成提示消息
+                        let toastMessage = '';
+                        let toastType = 'success';
+                        
+                        if (successPlaylists.length > 0 && failedPlaylists.length === 0) {
+                            // 全部成功
+                            toastMessage = successPlaylists.length === 1 
+                                ? `歌曲已成功添加到歌单《${successPlaylists[0].name}》`
+                                : `歌曲已成功添加到${successPlaylists.length}个歌单`;
+                        } else if (successPlaylists.length === 0 && failedPlaylists.length > 0) {
+                            // 全部失败
+                            toastMessage = failedPlaylists.map(fp => `${fp.name}：${fp.error}`).join('；');
+                            toastType = 'error';
+                        } else {
+                            // 部分成功，部分失败
+                            toastMessage = `成功添加到${successPlaylists.length}个歌单；失败：${failedPlaylists.map(fp => `${fp.name}(${fp.error})`).join('、')}`;
+                            toastType = 'warning';
                         }
                         
-                        // 直接显示消息
-                        console.log('最终显示的toast消息:', displayMessage);
-                        showToast(displayMessage, 'success');
+                        console.log('显示的toast消息:', toastMessage);
+                        showToast(toastMessage, toastType);
+                        
+                        // 如果有成功的歌单，且updateSidebarPlaylist不存在，则重新加载整个歌单列表
+                        if (successPlaylists.length > 0 && typeof updateSidebarPlaylist !== 'function' && typeof loadUserPlaylists === 'function') {
+                            loadUserPlaylists();
+                        }
+                        
                         hideModal();
                     })
                     .catch(error => {
-                        console.error('添加到歌单失败:', error);
-                        showToast('添加失败，请重试', 'error');
+                        // 这个catch通常不会被触发，因为我们在Promise.allSettled中已经处理了所有情况
+                        console.error('添加到歌单过程中发生错误:', error);
+                        showToast('处理请求过程中发生错误，请重试', 'error');
                     });
             }
             

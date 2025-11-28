@@ -5,6 +5,7 @@ from typing import List
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask, render_template, request, session, redirect, abort
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # 导入项目依赖
 from config import current_config
@@ -14,6 +15,33 @@ from apps.clean_history_data import register_cleanup_hook  # 历史数据清理�
 
 
 # ======================== 日志辅助函数 ========================
+def get_real_ip(request):
+    """获取真实的客户端IP地址，支持反向代理环境
+    
+    优先检查常见的反向代理头，最后回退到remote_addr
+    
+    Args:
+        request: Flask请求对象
+    
+    Returns:
+        str: 真实的IP地址
+    """
+    # 宝塔面板等反向代理常用的头
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        return real_ip
+    
+    # 标准的X-Forwarded-For头（可能包含多个IP，取第一个）
+    x_forwarded_for = request.headers.get('X-Forwarded-For')
+    if x_forwarded_for:
+        # X-Forwarded-For可能包含多个代理IP，取第一个非空值
+        ips = [ip.strip() for ip in x_forwarded_for.split(',') if ip.strip()]
+        if ips:
+            return ips[0]
+    
+    # 回退到原始的remote_addr
+    return request.remote_addr
+
 def log_request_details(logger, request, level, message, **kwargs):
     """记录请求详细信息的辅助函数
     
@@ -26,7 +54,7 @@ def log_request_details(logger, request, level, message, **kwargs):
     """
     # 构建请求详情字符串
     request_info = {
-        'IP': request.remote_addr,
+        'IP': get_real_ip(request),
         '方法': request.method,
         '路径': request.path,
         '用户代理': request.headers.get('User-Agent', '未知')
@@ -71,6 +99,22 @@ def create_app(config_name=None) -> Flask:
     
     # 创建Flask应用实例
     app = Flask(__name__)
+    
+    # 配置ProxyFix中间件，支持反向代理环境下获取真实IP
+    # x_for=1: 信任第一个X-Forwarded-For头
+    # x_proto=1: 信任X-Forwarded-Proto头
+    # x_host=1: 信任X-Forwarded-Host头
+    # x_prefix=1: 信任X-Forwarded-Prefix头
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=1,
+        x_proto=1,
+        x_host=1,
+        x_prefix=1
+    )
+    
+    # 配置在反向代理环境下正确处理请求头
+    app.config['TRAP_BAD_REQUEST_ERRORS'] = True
     
     # 1. 加载配置
     try:

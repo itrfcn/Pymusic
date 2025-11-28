@@ -511,4 +511,4 @@ def new_api_handler():
 
 如有任何问题或建议，请通过以下方式联系我们：
 
-- [Issues](https://github.com/yourusername/wangyi/issues)
+- [Issues](https://github.com/itrfcn/Pymusic/issues)

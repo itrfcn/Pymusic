@@ -430,14 +430,15 @@
             
             <div class="no-history" id="no-history" style="display: none;">
                 <p>您还没有播放历史记录</p>
-                <a href="#" class="btn-primary" onclick="switchView('discover'); return false;">去发现音乐</a>
+                <a href="/" class="btn-primary">去发现音乐</a>
             </div>
             
             <div class="history-list" id="history-list" style="display: none;">
+                <!-- 播放历史列表 -->
                 <div class="music-list" id="history-body">
                     <!-- 这里将通过JavaScript动态加载 -->
                 </div>
-                
+                <!-- 分页器 -->
                 <div class="pagination" id="pagination">
                     <!-- 这里将通过JavaScript动态加载 -->
                 </div>
@@ -446,7 +447,7 @@
             <div class="not-logged-in" style="text-align: center; padding: 60px 20px; color: #b0b0b0; opacity: 0; transform: translateY(20px); animation: fadeInUp 0.5s ease forwards;">
                 <p style="font-size: 1.2rem; margin-bottom: 20px;">您尚未登录</p>
                 <p style="margin-bottom: 30px;">登录后可以查看您的播放历史记录</p>
-                <a href="/user/login" class="btn-primary" style="display: inline-block; padding: 12px 30px; background-color: #1db954; color: white; border: none; border-radius: 25px; text-decoration: none; font-weight: 600; transition: background-color 0.3s ease;">去登录</a>
+                <a href="/login" class="btn-primary" style="display: inline-block; padding: 12px 30px; background-color: #1db954; color: white; border: none; border-radius: 25px; text-decoration: none; font-weight: 600; transition: background-color 0.3s ease;">去登录</a>
             </div>
         {% endif %}
     </div>
@@ -496,8 +497,6 @@
         return container;
     }
     
-    // 初始化骨架屏容器
-    initSkeletonContainer();
     
     // 显示骨架屏
     function showSkeleton() {
@@ -560,10 +559,8 @@
         const historyBody = document.getElementById('history-body');
         const pagination = document.getElementById('pagination');
         
-        // 简单验证元素是否存在，不存在时仍然继续尝试
-        if (!loading || !noHistory || !historyList || !historyBody) {
-            // 静默处理，不输出警告
-        }
+        // 元素不存在时直接返回，避免后续代码报错
+        if (!loading || !noHistory || !historyList || !historyBody) return;
         
         // 尝试设置加载状态（如果元素存在）
         if (loading) loading.style.display = 'none'; // 隐藏文字提示，只使用骨架屏
@@ -590,9 +587,9 @@
             const response = await fetch(`/user/get_history?page=${page}&page_size=${pageSize}`);
             
             // 检查是否被重定向到登录页面
-            if (response.redirected || response.url.includes('/user/login')) {
+            if (response.redirected || response.url.includes('/login')) {
 
-                window.location.href = '/user/login';
+                window.location.href = '/login';
                 return;
             }
             
@@ -601,265 +598,63 @@
                 throw new Error(`API请求失败: ${response.status}`);
             }
             
-            // 检查响应是否为JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                // 如果不是JSON响应，可能是重定向到登录页面
-                const text = await response.text();
-                // 检查是否包含登录页面相关内容
-                if (text.includes('<form') || text.includes('登录') || text.includes('login')) {
-                    console.error('用户未登录，重定向到登录页面');
-                    // 重定向到登录页面
-                    window.location.href = '/user/login';
-                    return;
-                }
-                throw new Error('API返回非JSON格式响应');
-            }
-            
+            // 解析JSON响应数据
             const data = await response.json();
-            
-            // 检查响应数据中是否指示需要登录
-            if (typeof data.message === 'string' && (data.message.includes('登录') || data.message.includes('需要'))) {
-
-                window.location.href = '/user/login';
-                return;
-            }
             
             if (data.history && data.history.length > 0) {
                 // 清空现有内容
                 historyBody.innerHTML = '';
-                
-                // 加载歌曲详情信息
-                const promises = data.history.map(async (item, index) => {
+
+                // 无论是否标记了has_details，都使用统一的处理逻辑
+                const rows = data.history.map((item, index) => {
                     const rank = (page - 1) * pageSize + index + 1;
                     
-                    try {
-                        // 获取歌曲详情
-                        const songResponse = await fetch(`/music/jx?type=json&ids=${item.song_id}&level=lossless`);
-                        
-                        // 检查响应是否为JSON
-                        const contentType = songResponse.headers.get('content-type');
-                        if (!contentType || !contentType.includes('application/json')) {
-    
-                            throw new Error('API返回非JSON格式响应');
-                        }
-                        
-                        const songData = await songResponse.json();
-                        
-                        if (songData.status === 200) {
-                            // 清理数据中的反引号
-                            if (songData.pic) {
-                                songData.pic = songData.pic.replace(/`/g, '');
-                            }
-                            if (songData.url) {
-                                songData.url = songData.url.replace(/`/g, '');
-                            }
-                            
-                            // 构建标准化的songInfo对象，确保与main.js兼容
-                            const songInfo = {
-                                id: songData.id || songData.song_id || item.song_id,
-                                name: songData.name || `歌曲ID: ${item.song_id}`,
-                                // 构建符合标准的嵌套结构
-                                ar: songData.ar || [{ name: songData.ar_name || songData.artist || '未知歌手' }],
-                                al: songData.al || { picUrl: songData.pic || songData.picUrl || '/static/img/logo.png' },
-                                // 添加与main.js兼容的标准字段
-                                artists: songData.ar || [{ name: songData.ar_name || songData.artist || '未知歌手' }],
-                                album: songData.al || { picUrl: songData.pic || songData.picUrl || '/static/img/logo.png' },
-                                // 保留原始数据
-                                originalData: songData
-                            };
-                            
-
-                            
-                            // 创建列表项
-                            const itemElement = document.createElement('div');
-                            itemElement.className = 'music-item';
-                            itemElement.dataset.songId = item.song_id;
-                            
-                            itemElement.innerHTML = `
-                                <div class="item-content">
-                                    <div class="item-rank">${rank}</div>
-                                    <div class="item-info">
-                                        <div class="song-cover">
-                                            <img src="${songInfo.al.picUrl || '/static/img/logo.png'}" alt="${songInfo.name}">
-                                        </div>
-                                        <div class="song-details">
-                                            <div class="song-name">${songInfo.name}</div>
-                                            <div class="song-artist">${songInfo.ar[0].name || '未知歌手'}</div>
-                                        </div>
-                                    </div>
+                    // 构建标准化的songInfo对象，确保与main.js兼容
+                    const songInfo = {
+                        id: item.song_id,
+                        name: item.name || `歌曲ID: ${item.song_id}`,
+                        ar: item.artist ? [{ name: item.artist }] : [{ name: '未知歌手' }],
+                        al: { picUrl: item.cover_url || '/static/img/logo.png' },
+                        artists: item.artist ? [{ name: item.artist }] : [{ name: '未知歌手' }],
+                        album: { picUrl: item.cover_url || '/static/img/logo.png' }
+                    };
+                    
+                    // 创建列表项
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'music-item';
+                    itemElement.dataset.songId = item.song_id;
+                    
+                    itemElement.innerHTML = `
+                        <div class="item-content">
+                            <div class="item-rank">${rank}</div>
+                            <div class="item-info">
+                                <div class="song-cover">
+                                    <img src="${songInfo.al.picUrl}" alt="${songInfo.name}">
                                 </div>
-                                <div class="play-time">${formatTime(item.play_time)}</div>
-                            `;
-                            
-                            // 点击整项播放歌曲
-                            itemElement.addEventListener('click', function(e) {
-                                // 如果点击的是按钮，不执行项点击事件（避免重复触发）
-                                if (!e.target.closest('.btn-play') && !e.target.closest('.btn-add')) {
-                                    // 确保songInfo对象有效且包含有效ID
-                                    if (songInfo && (songInfo.id || songInfo.song_id || songInfo.songid)) {
-
-                                        playSongWithInfo(songInfo);
-                                    }
-                                }
-                            });
-                            
-
-                            return itemElement;
-                        }
-                    } catch (e) {
-                        
-                    }
-                    
-                    // 如果获取详情失败，创建基础列表项
-                            const itemElement = document.createElement('div');
-                            itemElement.className = 'music-item';
-                            itemElement.dataset.songId = item.song_id;
-                            
-                            itemElement.innerHTML = `
-                                <div class="item-content">
-                                    <div class="item-rank">${rank}</div>
-                                    <div class="item-info">
-                                        <div class="song-cover">
-                                            <img src="/static/img/logo.png" alt="未知歌曲">
-                                        </div>
-                                        <div class="song-details">
-                                            <div class="song-name">歌曲ID: ${item.song_id}</div>
-                                            <div class="song-artist">信息加载失败</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="play-time">${formatTime(item.play_time)}</div>
-                            `;
-                    
-                            // 点击整项播放歌曲
-                            itemElement.addEventListener('click', function(e) {
-                                // 如果点击的是按钮，不执行项点击事件
-                                if (!e.target.closest('.btn-play')) {
-                                    // 验证歌曲ID不为空且有效
-                                    const songId = item.song_id;
-                                    if (!songId) {
-    
-                                        return;
-                                    }
-                                    
-                                    // 创建标准化的track对象
-                                    const track = {
-                                        id: songId.toString(), // 确保是字符串格式
-                                        name: `歌曲ID: ${songId}`,
-                                        artist: '未知歌手',
-                                        picUrl: '/static/img/logo.png',
-                                        // 添加与main.js兼容的字段
-                                        ar: [{ name: '未知歌手' }],
-                                        al: { picUrl: '/static/img/logo.png' },
-                                        artists: [{ name: '未知歌手' }],
-                                        album: { picUrl: '/static/img/logo.png' }
-                                    };
-                                    
-
-                                    
-                                    // 使用标准的播放接口
-                                    if (typeof window.playTrackFromPlaylist === 'function') {
-                                        window.playTrackFromPlaylist([track], 0);
-                                    } else if (typeof window.playTrack === 'function') {
-                                        window.playTrack(0);
-                                    }
-                                }
-                            });
-                            
-                            // 按钮已移除，无需添加事件监听器
-                            
-                            return itemElement;
-                });
-                
-                // 尝试获取数据，添加重试逻辑
-                async function fetchDataWithRetry(fetchFunc, maxRetries = 3) {
-                    let lastError;
-                    
-                    for (let attempt = 0; attempt < maxRetries; attempt++) {
-                        try {
-                            return await fetchFunc();
-                        } catch (error) {
-                            lastError = error;
-                            // 指数退避策略
-                            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
-                        }
-                    }
-                    
-                    throw lastError;
-                }
-                
-                // 检查是否已经有歌曲详情（后端批量获取）
-                if (data.has_details && data.history.length > 0) {
-                    // 直接使用后端返回的歌曲详情
-                    const rows = data.history.map((item, index) => {
-                        const rank = (page - 1) * pageSize + index + 1;
-                        
-                        // 构建标准化的songInfo对象
-                        const songInfo = {
-                            id: item.song_id,
-                            name: item.name || `歌曲ID: ${item.song_id}`,
-                            ar: item.artist ? [{ name: item.artist }] : [{ name: '未知歌手' }],
-                            al: { picUrl: item.cover_url || '/static/img/logo.png' },
-                            artists: item.artist ? [{ name: item.artist }] : [{ name: '未知歌手' }],
-                            album: { picUrl: item.cover_url || '/static/img/logo.png' }
-                        };
-                        
-                        // 创建列表项
-                        const itemElement = document.createElement('div');
-                        itemElement.className = 'music-item';
-                        itemElement.dataset.songId = item.song_id;
-                        
-                        itemElement.innerHTML = `
-                            <div class="item-content">
-                                <div class="item-rank">${rank}</div>
-                                <div class="item-info">
-                                    <div class="song-cover">
-                                        <img src="${songInfo.al.picUrl}" alt="${songInfo.name}">
-                                    </div>
-                                    <div class="song-details">
-                                        <div class="song-name">${songInfo.name}</div>
-                                        <div class="song-artist">${songInfo.ar[0].name}</div>
-                                    </div>
+                                <div class="song-details">
+                                    <div class="song-name">${songInfo.name}</div>
+                                    <div class="song-artist">${songInfo.ar[0].name}</div>
                                 </div>
                             </div>
-                            <div class="play-time">${formatTime(item.play_time)}</div>
-                        `;
-                        
-                        // 添加点击事件
-                        itemElement.addEventListener('click', function(e) {
-                            if (!e.target.closest('.btn-play') && !e.target.closest('.btn-add')) {
-                                playSongWithInfo(songInfo);
-                            }
-                        });
-                        
-                        return itemElement;
+                        </div>
+                        <div class="play-time">${formatTime(item.play_time)}</div>
+                    `;
+                    
+                    // 添加点击事件
+                    itemElement.addEventListener('click', function(e) {
+                        if (!e.target.closest('.btn-play') && !e.target.closest('.btn-add')) {
+                            playSongWithInfo(songInfo);
+                        }
                     });
                     
-                    // 添加到容器
-                    rows.forEach(row => {
-                        historyBody.appendChild(row);
-                    });
-                } else {
-                    // 后端没有返回详情，使用原来的方式逐个获取，但添加重试机制
-                    const rows = await Promise.all(
-                        promises.map(promise => 
-                            fetchDataWithRetry(() => promise, 2) // 最多重试2次
-                                .catch(() => {
-                                    // 返回一个默认的错误提示元素
-                                    const errorItem = document.createElement('div');
-                                    errorItem.className = 'music-item error-item';
-                                    errorItem.innerHTML = '<div class="error-text">获取歌曲信息失败</div>';
-                                    return errorItem;
-                                })
-                        )
-                    );
-                    
-                    // 添加到容器
-                    rows.forEach(row => {
-                        historyBody.appendChild(row);
-                    });
-                }
+                    return itemElement;
+                });
+                
+                // 添加到容器
+                rows.forEach(row => {
+                    historyBody.appendChild(row);
+                });
+                // 生成分页控件
                 
                 // 生成分页控件
                 generatePagination(page, data.total_pages);
@@ -874,51 +669,21 @@
                 noHistory.style.display = 'block';
             }
         } catch (error) {
-
                     hideSkeleton();
                     
-                    // 检查是否已有错误提示容器，如果没有则创建
-                    let errorContainer = document.querySelector('.error-container');
-                    if (!errorContainer) {
-                        errorContainer = document.createElement('div');
-                        errorContainer.className = 'error-container';
-                        errorContainer.style.display = 'none';
-                        document.querySelector('.history-content').appendChild(errorContainer);
-                    }
-                    
-                    // 根据错误类型显示不同的错误信息
-                    let errorMessage = '加载播放历史失败';
+                    // 简化错误处理，直接使用现有UI元素
                     if (error.message && (error.message.includes('登录') || error.message.includes('需要'))) {
-                        errorMessage = '请先登录后查看播放历史';
-                    } else if (error.message && error.message.includes('API请求失败')) {
-                        errorMessage = `网络请求失败: ${error.message.split(':')[1]?.trim() || '未知错误'}`;
-                    } else {
-                        errorMessage = `加载失败: ${error.message || '网络错误'}`;
+                        // 如果是登录相关错误，显示提示信息
+                        const noHistory = document.getElementById('no-history');
+                        if (noHistory) {
+                            noHistory.innerHTML = `
+                                <p>请先登录后查看播放历史</p>
+                                <a href="/login" class="btn-primary">去登录</a>
+                            `;
+                            noHistory.style.display = 'block';
+                        }
                     }
-                    
-                    errorContainer.innerHTML = `
-                        <div style="text-align: center; padding: 60px 20px; color: #b0b0b0;">
-                            <p style="margin-bottom: 20px;">${errorMessage}</p>
-                            <button class="btn-retry" style="padding: 10px 20px; background-color: #1db954; color: white; border: none; border-radius: 25px; cursor: pointer; margin: 5px;">重试</button>
-                            ${error.message && (error.message.includes('登录') || error.message.includes('需要')) ? 
-                                '<button class="btn-login" style="padding: 10px 20px; background-color: #333; color: white; border: none; border-radius: 25px; cursor: pointer; margin: 5px;">去登录</button>' : ''}
-                        </div>
-                    `;
-                    errorContainer.style.display = 'block';
-                    
-                    // 添加重试事件
-                    errorContainer.querySelector('.btn-retry').addEventListener('click', () => {
-                        errorContainer.style.display = 'none';
-                        loadPlayHistory(page, pageSize);
-                    });
-                    
-                    // 如果存在登录按钮，添加登录事件
-                    const loginBtn = errorContainer.querySelector('.btn-login');
-                    if (loginBtn) {
-                        loginBtn.addEventListener('click', () => {
-                            window.location.href = '/user/login';
-                        });
-                    }
+                    console.error('加载播放历史失败:', error);
                 } finally {
                         // 隐藏骨架屏
                     hideSkeleton();
@@ -1066,23 +831,6 @@
         loadPlayHistory();
     };
     
-    // 仅保留页面可见性变化监听，但添加防抖机制
-    // 使用全局变量避免重复声明
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            // 防抖处理，避免频繁触发
-            clearTimeout(window.visibilityChangeTimeout);
-            window.visibilityChangeTimeout = setTimeout(() => {
-                // 避免过于频繁地重新加载
-                if (!window.lastLoadTime || (Date.now() - window.lastLoadTime > 5000)) {
-                    window.lastLoadTime = Date.now();
-
-                    loadPlayHistory();
-                }
-            }, 300);
-        }
-    });
-    
-    // 初始化上次加载时间
+    // 初始化加载时间
     window.lastLoadTime = 0;
 </script>

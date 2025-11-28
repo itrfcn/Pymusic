@@ -45,11 +45,6 @@
         <div class="playlist-grid" id="hot-playlists">
             <!-- 歌单将动态插入 -->
         </div>
-
-        <!-- 加载更多按钮 -->
-        <div class="load-more-container">
-            <button id="load-more">加载更多</button>
-        </div>
     </div>
 
     <!-- 歌单详情弹窗 -->
@@ -456,7 +451,7 @@
     /* 弹窗样式 */
     .modal {
         position: fixed;
-        top: 0;
+        top: -40px;
         left: 0;
         width: 100%;
         height: 100%;
@@ -465,7 +460,8 @@
         display: none;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        padding: 15px;
+        overflow-y: auto; /* 允许模态框容器在需要时滚动 */
     }
 
     .modal.active {
@@ -476,17 +472,26 @@
         background: #1a1a1a;
         border-radius: 10px;
         width: 100%;
+        height: 85%;
         max-width: 800px;
-        max-height: 90vh;
-        overflow-y: auto;
-        position: relative;
+        max-height: 95vh; /* 降低最大高度，留出更多空间 */
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+    
+    .modal-body {
+        padding: 20px;
+        padding-bottom: 120px; /* 大幅增加底部padding，确保最后一首歌不会被播放器挡住 */
+        flex: 1;
+        overflow-y: auto; /* 让modal-body区域可以独立滚动 */
         /* 隐藏滚动条 - 适用于Chrome、Safari和Opera */
         -ms-overflow-style: none;  /* 隐藏IE和Edge的滚动条 */
         scrollbar-width: none;    /* 隐藏Firefox的滚动条 */
     }
     
     /* 隐藏Chrome、Safari和Opera的滚动条 */
-    .modal-content::-webkit-scrollbar {
+    .modal-body::-webkit-scrollbar {
         display: none;
     }
 
@@ -618,6 +623,110 @@
             max-width: 200px;
         }
     }
+    
+    /* 针对矮屏幕的响应式优化 */
+    @media (max-height: 600px) {
+        .modal {
+            padding: 10px;
+            align-items: flex-start;
+        }
+        
+        .modal-content {
+            max-height: 98vh;
+        }
+        
+        .modal-header {
+            padding: 12px 16px;
+        }
+        
+        .modal-body {
+            padding: 15px;
+            padding-bottom: 110px; /* 矮屏幕上增加底部padding */
+        }
+        
+        .playlist-detail {
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-cover {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .detail-info h2 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .detail-info p {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .song-list li {
+            padding: 10px 8px;
+        }
+    }
+    
+    /* 针对极矮屏幕的优化 */
+    @media (max-height: 450px) {
+        .modal {
+            padding: 5px;
+        }
+        
+        .modal-content {
+            height: 99vh;
+        }
+        
+        .modal-header {
+            padding: 10px 14px;
+        }
+        
+        .modal-header h3 {
+            font-size: 1rem;
+        }
+        
+        .modal-body {
+            padding: 12px;
+            padding-bottom: 100px; /* 极矮屏幕上增加底部padding */
+        }
+        
+        .playlist-detail {
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .detail-cover {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .detail-info h2 {
+            font-size: 1.1rem;
+        }
+        
+        .detail-info p {
+            font-size: 0.85rem;
+        }
+        
+        .song-list li {
+            padding: 8px 6px;
+        }
+        
+        .song-list li .song-name {
+            margin-bottom: 2px;
+            font-size: 0.95rem;
+        }
+        
+        .song-list li .song-artist {
+            font-size: 0.8rem;
+        }
+        
+        .song-list li .song-duration {
+            font-size: 0.8rem;
+        }
+    }
 
     @media (min-width: 480px) {
         .banner-carousel {
@@ -668,15 +777,12 @@
             allCategories: new Set(), // 所有分类集合
             displayedPlaylists: [],  // 当前显示的歌单
             isLoading: false,       // 主加载状态
-            isLoadingMore: false,   // 加载更多状态
-            hasMore: true           // 是否有更多数据
         };
 
         // DOM元素缓存 - 避免重复DOM查询
         const elements = {
             categoryContainer: document.querySelector('.music-categories'),
             playlistContainer: document.getElementById('hot-playlists'),
-            loadMoreBtn: document.getElementById('load-more'),
             modal: document.getElementById('playlist-modal'),
             closeModal: document.querySelector('.close-modal'),
             modalTitle: document.getElementById('modal-title'),
@@ -689,36 +795,46 @@
         };
 
         // API请求工具函数 - 封装fetch请求逻辑
-        async function fetchData(url, options = {}) {
-            try {
-                // 发起fetch请求，设置超时和头部信息
-                const response = await fetch(url, {
-                    ...options,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    timeout: 10000 // 10秒超时
-                });
+        async function fetchData(url, options = {}, retries = 3) {
+            // 内部递归函数处理重试逻辑
+            async function fetchWithRetry(currentAttempt) {
+                try {
+                    // 发起fetch请求，设置超时和头部信息
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        timeout: 10000 // 10秒超时
+                    });
 
-                // 检查响应状态
-                if (!response.ok) {
-                    throw new Error(`HTTP错误: ${response.status}`);
+                    // 检查响应状态
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status}`);
+                    }
+
+                    // 返回JSON数据
+                    return await response.json();
+                } catch (error) {
+                    // 如果还有重试次数，进行重试
+                    if (currentAttempt < retries) {
+                        // 可以添加指数退避策略，每次重试等待时间递增
+                        const delay = 1000 * Math.pow(2, currentAttempt); // 1s, 2s, 4s递增
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithRetry(currentAttempt + 1);
+                    }
+                    throw error; // 向上抛出最终错误
                 }
-
-                // 返回JSON数据
-                return await response.json();
-            } catch (error) {
-                // 错误处理和日志记录
-                console.error(`请求${url}失败:`, error);
-                throw error; // 向上抛出错误，让调用者处理
             }
+
+            // 从第0次尝试开始
+            return fetchWithRetry(0);
         }
 
         // 处理歌单数据 - 同时提取分类和处理歌单信息
         function processPlaylistData(data) {
             if (!data || !data.playlists) {
-                console.error('获取歌单数据失败:', data);
                 showCategoryError();
                 showError('加载歌单失败，请稍后重试。', true);
                 return false;
@@ -781,7 +897,6 @@
                 const data = await fetchData('/music/hot_playlists');
                 processPlaylistData(data);
             } catch (error) {
-                console.error('获取歌单数据时出错:', error);
                 showCategoryError();
                 showError('加载歌单失败，请稍后重试。', true);
             } finally {
@@ -1038,38 +1153,6 @@
             startSlide();
         }
 
-        // 加载更多功能初始化
-        function initLoadMore() {
-            // 为加载更多按钮添加点击事件
-            elements.loadMoreBtn.addEventListener('click', async function () {
-                // 防止重复加载或无更多数据时点击
-                if (dataStore.isLoadingMore || !dataStore.hasMore) return;
-
-                // 更新加载状态
-                dataStore.isLoadingMore = true;
-                this.innerHTML = '加载中...';
-                this.disabled = true;
-
-                try {
-                    // 模拟API请求延迟
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // 注：由于没有实际的"更多数据"API，这里只是演示逻辑
-                    // 实际应用中应调用分页API获取下一页数据
-                    
-                    // 标记为没有更多数据
-                    dataStore.hasMore = false;
-                    this.innerHTML = '没有更多了';
-                } catch (error) {
-                    // 错误处理
-                    console.error('加载更多失败:', error);
-                    this.innerHTML = '加载失败，重试';
-                    dataStore.isLoadingMore = false;
-                    this.disabled = false;
-                }
-            });
-        }
-
         // 歌单详情弹窗功能初始化
         function initModal() {
             // 关闭按钮点击事件
@@ -1128,7 +1211,6 @@
                 }
             } catch (error) {
                 // 错误处理和重试机制
-                console.error('获取歌曲列表时出错:', error);
                 elements.songList.innerHTML = `
                     <div class="error">
                         加载歌曲列表出错
@@ -1179,15 +1261,6 @@
                 li.addEventListener('click', (e) => {
                     e.stopPropagation();
                     
-                    // 详细日志记录
-                    console.log('歌曲点击事件触发:', {
-                        songId: song.id,
-                        songName: song.name,
-                        playTrackFromPlaylist: typeof window.playTrackFromPlaylist,
-                        playTrack: typeof window.playTrack,
-                        currentPlaylist: typeof window.currentPlaylist
-                    });
-                    
                     // 标准化歌曲数据结构，确保与播放器兼容
                     const normalizedTracks = normalizeTracks(tracks);
                     const normalizedSong = normalizedTracks[index];
@@ -1235,50 +1308,41 @@
                     // 方案1: 使用标准的播放列表播放方法
                     if (typeof window.playTrackFromPlaylist === 'function') {
                         try {
-                            console.log('尝试方案1: 调用window.playTrackFromPlaylist');
                             window.playTrackFromPlaylist(tracks, index);
-                            console.log('方案1执行成功');
                             updateUIFeedback(element, true);
                             return true;
                         } catch (error) {
-                            console.error('方案1失败:', error);
                         }
                     }
                     
                     // 方案2: 手动设置播放列表并调用播放函数
                     if (typeof window.playTrack === 'function' && typeof window.currentPlaylist !== 'undefined') {
                         try {
-                            console.log('尝试方案2: 手动设置播放列表并调用playTrack');
                             window.currentPlaylist = tracks;
                             window.playTrack(index);
-                            console.log('方案2执行成功');
                             updateUIFeedback(element, true);
                             return true;
                         } catch (error) {
-                            console.error('方案2失败:', error);
                         }
                     }
                     
                     // 方案3: 直接尝试播放单个歌曲（不依赖完整播放列表）
                     if (typeof window.playSingleTrack === 'function') {
                         try {
-                            console.log('尝试方案3: 调用playSingleTrack');
+
                             window.playSingleTrack(song);
-                            console.log('方案3执行成功');
+
                             updateUIFeedback(element, true);
                             return true;
                         } catch (error) {
-                            console.error('方案3失败:', error);
                         }
                     }
                     
                     // 所有方案都失败，提供UI反馈
-                    console.warn('所有播放方案都失败');
                     updateUIFeedback(element, false);
                     
                     // 可以考虑通过模拟事件来触发播放器
                     try {
-                        console.log('尝试方案4: 模拟触发播放事件');
                         // 创建并分发一个自定义事件
                         const playEvent = new CustomEvent('customPlayTrack', {
                             detail: { tracks: tracks, index: index, song: song },
@@ -1287,7 +1351,7 @@
                         });
                         document.dispatchEvent(playEvent);
                     } catch (error) {
-                        console.error('方案4失败:', error);
+                        
                     }
                     
                     return false;
@@ -1327,7 +1391,6 @@
 
             // 初始化其他功能模块
             initCarousel();
-            initLoadMore();
             initModal();
         }
 

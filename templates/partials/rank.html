@@ -325,12 +325,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         // 音乐排行榜主程序
         // 功能：展示不同类型的音乐排行榜，支持点击直接播放歌曲
-
-        // ====== 工具函数 ======
-        
-        // 移除模拟数据生成函数，只使用接口返回的实际数据
-
-        // ====== 配置和数据 ======
         
         // 排行榜类型与播放列表ID的映射
         const playlistMap = {
@@ -384,7 +378,6 @@
                         artist: song.artists ? song.artists.map(ar => ar.name).join(', ') : '未知歌手',
                         album: song.album ? song.album.name : '未知专辑',
                         cover: song.album ? song.album.picUrl : '',
-                        // 移除模拟的播放次数和排名变化数据
                     })) : [];
                 
                 // 数据为空时进行重试
@@ -459,7 +452,7 @@
                 item.dataset.id = song.id;
                 item.dataset.type = type;
 
-                // 只显示接口返回的实际数据字段
+                // 渲染歌曲项HTML
                 item.innerHTML = `
                 <div class="rank-number ${rank <= 3 ? 'top-' + rank : ''}">${rank}</div>
                 <div class="song-info">
@@ -487,7 +480,6 @@
                     if (window.playTrackFromPlaylist) {
                         window.playTrackFromPlaylist(currentSongsList, index);
                     } else {
-                        console.warn('播放器功能未找到，尝试备用方法...');
                         // 简单的视觉反馈
                         showPlayingIndicator(item);
                     }

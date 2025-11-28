@@ -899,8 +899,8 @@ async function loadPlaylistDetail(requestedId = null) {
     // 更新最后加载的歌单ID（即使是同一个歌单也允许重新加载）
     window.lastPlaylistId = playlistId;
     
-    // 检查是否有有效的歌单ID
-    if (!playlistId) {
+    // 检查是否有有效的歌单ID，且必须是纯数字
+    if (!playlistId || !/^\d+$/.test(playlistId)) {
         const songsList = document.getElementById('pl-songs-list');
         if (songsList) {
             songsList.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">' +
@@ -909,7 +909,6 @@ async function loadPlaylistDetail(requestedId = null) {
         showToast('未提供有效的歌单ID', 'error');
         return;
     }
-    
     try {
         // 显示加载状态
         const songsList = document.getElementById('pl-songs-list');
@@ -951,8 +950,6 @@ function renderPlaylistDetail(playlistData) {
     const plDescription = document.querySelector('.pl-description');
     const plCoverImg = document.getElementById('pl-cover-img');
     const plPlayCount = document.getElementById('pl-play-count');
-    const plUsername = document.getElementById('pl-username');
-    const plUserAvatar = document.getElementById('pl-user-avatar');
     const plSongCount = document.querySelector('.pl-song-count');
     const plCreateTime = document.querySelector('.pl-create-time');
     
@@ -985,18 +982,6 @@ function renderPlaylistDetail(playlistData) {
             plCoverImg.src = '/static/img/logo.png';
         }
         plCoverImg.alt = playlistData.playlist?.name || '歌单封面';
-    }
-    
-
-    if (plUsername) {
-        // 显示创始人信息
-        plUsername.textContent = playlistData.playlist?.creator_name || '未知用户';
-    }
-    
-    if (plUserAvatar) {
-        // 设置用户头像
-        plUserAvatar.src = playlistData.playlist?.creator_avatar || '/static/img/logo.png';
-        plUserAvatar.alt = playlistData.playlist?.creator_name || '用户头像';
     }
     
     if (plSongCount) {
@@ -1060,21 +1045,23 @@ window.initPlaylistDetail = function() {
     loadPlaylistDetail();
 }
 
-// 格式化播放次数
-function formatPlayCount(count) {
-    if (count >= 10000) {
-        return (count / 10000).toFixed(1) + '万';
-    }
-    return count.toString();
-}
+// 格式化日期（支持多种输入类型）
+function formatDate(dateInput, defaultValue = '未知时间') {
+  // 空值直接返回默认值
+  if (!dateInput && dateInput !== 0) return defaultValue;
 
-// 格式化日期
-function formatDate(dateString) {
-    if (!dateString) return '未知时间';
-    const date = new Date(dateString);
-    return date.getFullYear() + '-' + 
-           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-           String(date.getDate()).padStart(2, '0');
+  // 统一转换为 Date 对象（兼容多种输入类型）
+  const date = new Date(dateInput);
+
+  // 校验日期有效性（避免 Invalid Date 情况）
+  if (isNaN(date.getTime())) return defaultValue;
+
+  // 提取日期组件并补零（保持原逻辑，优化写法）
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 }
 
 
@@ -1094,9 +1081,7 @@ function renderSongList(songs) {
     
     // 保存当前歌单歌曲列表到全局变量，供播放函数使用
     window.currentPlaylistSongs = songs;
-    
 
-    
     songs.forEach((song, index) => {
         const row = document.createElement('tr');
         row.role = 'row';
@@ -1143,15 +1128,10 @@ function attachDynamicEventListeners() {
             const songName = row.querySelector('.pl-song-name').textContent;
             const artistName = row.querySelector('.pl-col-artist').textContent;
             
-            // 移除播放状态高亮功能
-            
             // 调用正确的播放函数 - 传递完整的歌曲列表和当前歌曲索引
             const songIndex = Array.from(document.getElementById('pl-songs-list').querySelectorAll('tr')).findIndex(tr => tr === row);
             if (window.playTrackFromPlaylist && window.currentPlaylistSongs) {
                 window.playTrackFromPlaylist(window.currentPlaylistSongs, songIndex);
-            } else if (window.playTrack) {
-                // 模拟播放
-                showToast(`正在播放: ${songName}`);
             }
         });
     });
@@ -1196,7 +1176,7 @@ async function removeSongFromPlaylist(songId) {
         return;
     }
     
-    if (!playlistId) {
+    if (!playlistId || !/^\d+$/.test(playlistId)) {
         showToast('无法移除歌曲：未找到有效的歌单ID', 'error');
         return;
     }
@@ -1432,7 +1412,7 @@ async function deletePlaylist() {
         
         // 重定向到歌单列表页
         setTimeout(() => {
-            window.location.href = '/playlists';
+            window.location.href = '/';
         }, 1000);
     } catch (error) {
         // 显示错误消息
@@ -1492,10 +1472,6 @@ function updateSidebarPlaylistName(playlistId, newName) {
 
 // 显示Toast通知 - 使用更简洁的方式
 function showToast(message, type = 'success') {
-    // 不显示任何通知
-    
-    // 如果确实需要反馈，但又不想显示弹窗，可以使用一个非常低调的提示
-    // 这里我们使用一个透明度过高的元素，几乎不可见但功能仍在
     let toast = document.getElementById('silent-toast');
     if (!toast) {
         toast = document.createElement('div');
@@ -1556,7 +1532,6 @@ function setupCoverPreview() {
     });
 }
 
-// 已移除搜索歌曲和添加歌曲相关功能
 
 // 初始化所有事件监听器
 function initEventListeners() {
@@ -1616,18 +1591,16 @@ function initEventListeners() {
     // 设置封面预览
     setupCoverPreview();
     
-    // 已移除搜索功能
 }
 
-// 页面加载完成后初始化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        initEventListeners();
-        loadPlaylistDetail();
-    });
-} else {
-    // 如果页面已经加载完成
+// 统一初始化入口，避免重复调用
+(() => {
+  const init = () => {
     initEventListeners();
     loadPlaylistDetail();
-}
+  };
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', init)
+    : init();
+})();
 </script>

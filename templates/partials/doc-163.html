@@ -693,10 +693,19 @@
     function downloadMusicFile(url, songName) {
         if (!url) return; // 无链接直接返回，不提示
         
+        // 确保URL使用HTTPS协议，解决混合内容问题
+        if (url.startsWith('http:') && window.location.protocol === 'https:') {
+            url = url.replace('http:', 'https:');
+        }
+        
         fetch(url, {
             method: 'GET',
             mode: 'cors',
-            credentials: 'omit'
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'audio/flac',
+                'Accept': 'audio/*'
+            }
         }).then(response => {
             if (!response.ok) throw new Error('下载失败');
             // 强制FLAC后缀，清洗文件名

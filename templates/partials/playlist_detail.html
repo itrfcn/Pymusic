@@ -267,10 +267,12 @@
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 9999; /* 提高z-index确保在最顶层 */
   justify-content: center;
   align-items: center;
   animation: fadeIn 0.2s ease;
+  /* 确保弹窗在所有元素之上 */
+  pointer-events: auto;
 }
 
 .pl-modal-content {
@@ -279,10 +281,41 @@
   border-radius: var(--border-radius);
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
+  /* 高度自适应：不设置固定高度，由内容决定 */
+  min-height: 100px; /* 设置最小高度避免内容过少时显示异常 */
+  max-height: 80vh; /* 只限制最大高度，防止超出视口 */
+  height: auto; /* 明确设置高度为自动 */
+  /* 隐藏滚动条但保持滚动功能 */
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   animation: slideIn 0.3s ease;
+  padding-bottom: 20px; /* 增加底部内边距 */
+  
+  /* 确保内容不被底部播放器遮挡 */
+  margin-bottom: 20px;
+}
+
+/* Chrome, Safari and Opera隐藏滚动条 */
+.pl-modal-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* 移动端特殊适配 */
+@media (max-width: 480px) {
+  .pl-modal {
+    padding: 20px 0;
+    /* 调整移动设备上的对齐方式，使弹窗向上移动 */
+    align-items: flex-start;
+    margin-top: 20px;
+  }
+  
+  .pl-modal-content {
+    width: 95%;
+    max-height: 70vh; /* 移动设备上限制最大高度 */
+    margin-bottom: 100px; /* 为底部播放器留出充足空间 */
+  }
 }
 
 .pl-modal-header {
@@ -757,20 +790,20 @@
     <!-- 歌单信息区域 -->
     <header class="pl-header">
         <div class="pl-cover">
-            <img id="pl-cover-img" src="" alt="歌单封面" class="pl-cover-image" loading="lazy">
+            <img id="pl-cover-img" src="https://img.cdn1.vip/i/692a71e1a5c1d_1764389345.webp" alt="歌单封面" class="pl-cover-image" loading="lazy">
             <div class="pl-cover-overlay" title="点击播放全部歌曲">
                 <i class="fa-solid fa-play"></i>
             </div>
         </div>
         <div class="pl-info">
-            <h1 class="pl-title" aria-label="歌单标题">歌单名称</h1>
-            <p class="pl-description" aria-label="歌单描述">歌单描述</p>
+            <h1 class="pl-title" aria-label="歌单标题">加载中...</h1>
+            <p class="pl-description" aria-label="歌单描述">加载中...</p>
             <div class="pl-meta">
                 <span class="pl-song-count" aria-label="歌曲数量">
-                    <i class="fa-solid fa-music"></i> 0首
+                    <i class="fa-solid fa-music"></i> 加载中...首 
                 </span>
                 <span class="pl-create-time" aria-label="创建时间">
-                    <i class="fa-solid fa-calendar"></i> 创建于：2023-01-01
+                    <i class="fa-solid fa-calendar"></i> 创建于：加载中...
                 </span>
             </div>
             <div class="pl-actions">

@@ -1066,11 +1066,12 @@ img {
             position: fixed;
             top: 0;
             left: -100%; /* 使用负left值而不是transform以避免空间占用 */
-            height: 100vh;
+            height: calc(100vh - var(--player-height)); /* 高度等于视口高度减去播放器高度 */
             width: var(--sidebar-width);
             box-shadow: var(--shadow-lg);
             z-index: 1000; /* 确保在最上层 */
             transform: none;
+            padding-bottom: var(--spacing-lg); /* 保留适当的底部内边距 */
         }
         
         /* 侧边栏打开状态 */
@@ -1078,7 +1079,8 @@ img {
             left: 0 !important;
             width: var(--sidebar-width) !important;
             padding: var(--spacing-lg) !important;
-            height: 100vh !important;
+            padding-bottom: var(--spacing-xl) !important;
+            height: calc(100vh - var(--player-height)) !important;
         }
         
         /* 主内容区域默认扩展 */

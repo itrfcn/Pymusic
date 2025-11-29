@@ -170,15 +170,36 @@ def get_song_url(song_id: Union[str, int], level: str, cookies: Dict[str, str]) 
 
 
 def get_song_detail(song_id: Union[str, int]) -> Dict[str, Union[str, int, List]]:
+    """获取单个歌曲详情
+    
+    Args:
+        song_id: 歌曲ID
+    
+    Returns:
+        包含歌曲详情的字典
+    """
+    return get_songs_detail([song_id])
+
+def get_songs_detail(song_ids: List[Union[str, int]]) -> Dict[str, Union[str, int, List]]:
+    """批量获取多个歌曲详情
+    
+    Args:
+        song_ids: 歌曲ID列表
+    
+    Returns:
+        包含所有歌曲详情的字典
+    """
     url = "https://interface3.music.163.com/api/v3/song/detail"
     try:
-        data = {'c': json.dumps([{"id": str(song_id), "v": 0}])}
+        # 构建批量请求数据
+        song_list = [{"id": str(song_id), "v": 0} for song_id in song_ids]
+        data = {'c': json.dumps(song_list)}
         response = requests.post(url, data=data, headers=WEB_HEADERS, timeout=10)
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        current_app.logger.error(f"获取歌曲详情失败：{song_id}，错误：{str(e)}")
-        return {"code": 500, "message": f"获取详情失败：{str(e)}"}
+        current_app.logger.error(f"批量获取歌曲详情失败，错误：{str(e)}")
+        return {"code": 500, "message": f"批量获取详情失败：{str(e)}"}
 
 
 def get_song_lyric(song_id: Union[str, int], cookies: Dict[str, str]) -> Dict[str, Union[str, int]]:

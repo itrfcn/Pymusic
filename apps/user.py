@@ -2,7 +2,7 @@ from flask import Blueprint, request, redirect, url_for, session, jsonify, curre
 from apps.tool.Mysql import Mysql
 import hashlib
 from functools import wraps
-from apps.music import get_song_detail
+from apps.music import get_songs_detail
 import re
 
 
@@ -281,16 +281,38 @@ def get_playlist_detail(playlist_id):
                 [playlist_id]
             )
             
-            # 批量获取歌曲详情
+            # 批量获取歌曲详情（优化性能）
             enriched_songs = []
             try:
-                for song_info in songs:
-                    song_id = song_info['song_id']
-                    try:
-                        # 获取歌曲详情
-                        detail = get_song_detail(song_id)
-                        if detail.get('code') == 200 and detail.get('songs'):
-                            song = detail['songs'][0]
+                # 如果没有歌曲，直接返回空列表
+                if not songs:
+                    enriched_songs = []
+                else:
+                    # 提取所有歌曲ID
+                    song_ids = [song_info['song_id'] for song_info in songs]
+                    # 按批次处理，避免单次请求过多ID（每批最多50个）
+                    batch_size = 50
+                    all_song_details = {}
+                    
+                    for i in range(0, len(song_ids), batch_size):
+                        batch_ids = song_ids[i:i+batch_size]
+                        # 批量获取这一批歌曲的详情
+                        batch_result = get_songs_detail(batch_ids)
+                        
+                        if batch_result.get('code') == 200 and batch_result.get('songs'):
+                            # 将结果存入字典，以song_id为key
+                            for song in batch_result['songs']:
+                                if song:
+                                    all_song_details[song.get('id')] = song
+                    
+                    # 构建返回结果，保持原有顺序
+                    for song_info in songs:
+                        song_id = song_info['song_id']
+                        # 查找是否有该歌曲的详情
+                        song = all_song_details.get(song_id)
+                        
+                        if song:
+                            # 有详情时构建丰富的歌曲信息
                             enriched_song = {
                                 'song_id': song_id,
                                 'add_time': song_info['add_time'],
@@ -299,31 +321,33 @@ def get_playlist_detail(playlist_id):
                                 'cover_url': song.get('al', {}).get('picUrl', ''),
                                 'album': song.get('al', {}).get('name', '未知专辑')
                             }
-                            enriched_songs.append(enriched_song)
                         else:
-                            # 获取失败，使用基本信息
-                            enriched_songs.append({
+                            # 没有详情时使用基本信息
+                            enriched_song = {
                                 'song_id': song_id,
                                 'add_time': song_info['add_time'],
                                 'name': f'歌曲ID: {song_id}',
                                 'artist': '未知歌手',
                                 'cover_url': '',
                                 'album': '未知专辑'
-                            })
-                    except Exception as e:
-                        current_app.logger.error(f"获取歌曲{song_id}详情失败: {str(e)}")
-                        # 失败时仍然添加基本信息
-                        enriched_songs.append({
-                            'song_id': song_id,
-                            'add_time': song_info['add_time'],
-                            'name': f'歌曲ID: {song_id}',
-                            'artist': '未知歌手',
-                            'cover_url': '',
-                            'album': '未知专辑'
-                        })
+                            }
+                        
+                        enriched_songs.append(enriched_song)
+                        
             except Exception as e:
                 current_app.logger.error(f"批量获取歌曲详情失败: {str(e)}")
-                enriched_songs = songs
+                # 出错时构建基本信息的歌曲列表
+                enriched_songs = [
+                    {
+                        'song_id': song_info['song_id'],
+                        'add_time': song_info['add_time'],
+                        'name': f'歌曲ID: {song_info["song_id"]}',
+                        'artist': '未知歌手',
+                        'cover_url': '',
+                        'album': '未知专辑'
+                    }
+                    for song_info in songs
+                ]
             
             current_app.logger.info(f"用户 {user_id} 获取歌单详情成功: ID {playlist_id}")
             return jsonify({
@@ -702,56 +726,57 @@ def get_play_history():
             
             try:
                 # 使用批量获取歌曲详情的方式，减少API调用次数
-                # 每10首歌一批进行处理
-                for i in range(0, len(song_ids), 10):
-                    batch_ids = song_ids[i:i+10]
+                # 每50首歌一批进行处理
+                song_details_map = {}
+                for i in range(0, len(song_ids), 50):
+                    batch_ids = song_ids[i:i+50]
                     
-                    # 构建批量请求数据
-                    songs_data = []
-                    for song_id in batch_ids:
-                        try:
-                            # 获取单首歌曲详情
-                            detail = get_song_detail(song_id)
-                            if detail.get('code') == 200 and detail.get('songs'):
-                                song = detail['songs'][0]
-                                # 找到对应的历史记录
-                                history_record = next((r for r in unique_history if r['song_id'] == song_id), None)
-                                if history_record:
-                                    # 丰富历史记录数据
-                                    enriched_record = {
-                                        'song_id': song_id,
-                                        'play_time': history_record['play_time'],
-                                        'name': song.get('name', '未知歌曲'),
-                                        'artist': '/'.join([ar.get('name', '') for ar in song.get('ar', []) if ar.get('name')]),
-                                        'cover_url': song.get('al', {}).get('picUrl', ''),
-                                        'album': song.get('al', {}).get('name', '未知专辑')
-                                    }
-                                    enriched_history.append(enriched_record)
-                            else:
-                                # 获取失败，使用基本信息
-                                history_record = next((r for r in unique_history if r['song_id'] == song_id), None)
-                                if history_record:
-                                    enriched_history.append({
-                                        'song_id': song_id,
-                                        'play_time': history_record['play_time'],
-                                        'name': f'歌曲ID: {song_id}',
-                                        'artist': '未知歌手',
-                                        'cover_url': '',
-                                        'album': '未知专辑'
-                                    })
-                        except Exception as e:
-                            current_app.logger.error(f"获取歌曲{song_id}详情失败: {str(e)}")
-                            # 失败时仍然添加基本信息
-                            history_record = next((r for r in unique_history if r['song_id'] == song_id), None)
-                            if history_record:
-                                enriched_history.append({
-                                    'song_id': song_id,
-                                    'play_time': history_record['play_time'],
-                                    'name': f'歌曲ID: {song_id}',
-                                    'artist': '未知歌手',
-                                    'cover_url': '',
-                                    'album': '未知专辑'
-                                })
+                    # 使用批量获取函数
+                    batch_result = get_songs_detail(batch_ids)
+                    
+                    # 处理批量结果
+                    if batch_result and batch_result.get('code') == 200 and 'songs' in batch_result:
+                        for song in batch_result['songs']:
+                            if song and 'id' in song:
+                                song_details_map[song['id']] = song
+                
+                # 构建丰富的历史记录列表
+                for record in unique_history:
+                    song_id = record['song_id']
+                    try:
+                        if song_id in song_details_map:
+                            song = song_details_map[song_id]
+                            # 丰富历史记录数据
+                            enriched_record = {
+                                'song_id': song_id,
+                                'play_time': record['play_time'],
+                                'name': song.get('name', '未知歌曲'),
+                                'artist': '/'.join([ar.get('name', '') for ar in song.get('ar', []) if ar.get('name')]),
+                                'cover_url': song.get('al', {}).get('picUrl', ''),
+                                'album': song.get('al', {}).get('name', '未知专辑')
+                            }
+                            enriched_history.append(enriched_record)
+                        else:
+                            # 获取失败，使用基本信息
+                            enriched_history.append({
+                                'song_id': song_id,
+                                'play_time': record['play_time'],
+                                'name': f'歌曲ID: {song_id}',
+                                'artist': '未知歌手',
+                                'cover_url': '',
+                                'album': '未知专辑'
+                            })
+                    except Exception as e:
+                        current_app.logger.error(f"处理歌曲{song_id}详情失败: {str(e)}")
+                        # 失败时仍然添加基本信息
+                        enriched_history.append({
+                            'song_id': song_id,
+                            'play_time': record['play_time'],
+                            'name': f'歌曲ID: {song_id}',
+                            'artist': '未知歌手',
+                            'cover_url': '',
+                            'album': '未知专辑'
+                        })
             except Exception as e:
                 current_app.logger.error(f"批量获取歌曲详情失败: {str(e)}")
                 # 如果批量获取失败，返回原始数据

@@ -327,7 +327,10 @@ def get_playlist(sid: int):
     try:
         # 添加更多参数以获取完整歌曲列表
         url = f'https://music.163.com/api/playlist/detail?id={sid}'
-        response = requests.get(url, headers=WEB_HEADERS, timeout=10)
+        # 添加Cookie参数
+        headers_with_cookie = WEB_HEADERS.copy()
+        headers_with_cookie['Cookie'] = 'os=pc'
+        response = requests.get(url, headers=headers_with_cookie, timeout=10)
         response.raise_for_status()
         return jsonify(response.json())
     except requests.RequestException as e:

@@ -1,7 +1,8 @@
 import os
 import re
 import logging
-from typing import List
+import time
+from typing import List, Dict, Tuple
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask, render_template, request, session, redirect, abort
@@ -12,6 +13,147 @@ from config import current_config
 from apps.music import music  # 音乐模块蓝图
 from apps.user import user  # 用户模块蓝图
 from apps.clean_history_data import register_cleanup_hook  # 历史数据清理钩子
+
+
+# ======================== 防护扫描机制 ========================
+
+# IP访问频率限制存储
+ip_requests: Dict[str, List[float]] = {}
+# 恶意请求记录
+malicious_requests: Dict[str, int] = {}
+
+
+def is_ip_whitelisted(ip: str) -> bool:
+    """检查IP是否在白名单中
+    
+    Args:
+        ip: 客户端IP地址
+    
+    Returns:
+        bool: 是否在白名单中
+    """
+    return ip in current_config.IP_WHITELIST
+
+
+def is_ip_blacklisted(ip: str) -> bool:
+    """检查IP是否在黑名单中
+    
+    Args:
+        ip: 客户端IP地址
+    
+    Returns:
+        bool: 是否在黑名单中
+    """
+    return ip in current_config.IP_BLACKLIST
+
+
+def check_ip_rate_limit(ip: str) -> Tuple[bool, int]:
+    """检查IP访问频率限制
+    
+    Args:
+        ip: 客户端IP地址
+    
+    Returns:
+        Tuple[bool, int]: (是否通过限制, 剩余请求数)
+    """
+    if not current_config.IP_RATE_LIMIT_ENABLED:
+        return True, current_config.IP_RATE_LIMIT
+    
+    current_time = time.time()
+    # 清理过期的请求记录
+    if ip in ip_requests:
+        ip_requests[ip] = [t for t in ip_requests[ip] if current_time - t < current_config.IP_RATE_LIMIT_WINDOW]
+    else:
+        ip_requests[ip] = []
+    
+    # 检查请求数是否超过限制
+    if len(ip_requests[ip]) >= current_config.IP_RATE_LIMIT:
+        return False, 0
+    
+    # 记录当前请求时间
+    ip_requests[ip].append(current_time)
+    remaining = current_config.IP_RATE_LIMIT - len(ip_requests[ip])
+    return True, remaining
+
+
+def detect_sql_injection(content: str) -> bool:
+    """检测SQL注入攻击
+    
+    Args:
+        content: 要检测的内容
+    
+    Returns:
+        bool: 是否包含SQL注入模式
+    """
+    for pattern in current_config.SQL_INJECTION_PATTERNS:
+        if re.search(pattern, content, re.IGNORECASE):
+            return True
+    return False
+
+
+def detect_xss(content: str) -> bool:
+    """检测XSS攻击
+    
+    Args:
+        content: 要检测的内容
+    
+    Returns:
+        bool: 是否包含XSS模式
+    """
+    for pattern in current_config.XSS_PATTERNS:
+        if re.search(pattern, content, re.IGNORECASE):
+            return True
+    return False
+
+
+def detect_abnormal_ua(ua: str) -> bool:
+    """检测异常User-Agent
+    
+    Args:
+        ua: User-Agent字符串
+    
+    Returns:
+        bool: 是否为异常User-Agent
+    """
+    for pattern in current_config.ABNORMAL_UA_PATTERNS:
+        if re.search(pattern, ua, re.IGNORECASE):
+            return True
+    return False
+
+
+def block_scan_ua(ua: str) -> bool:
+    """拦截特定扫描User-Agent
+    
+    Args:
+        ua: User-Agent字符串
+    
+    Returns:
+        bool: 是否为需要拦截的扫描User-Agent
+    """
+    if not ua:
+        return False
+    
+    block_keywords = current_config.BLOCK_UA_KEYWORDS
+    for keyword in block_keywords:
+        if keyword.strip().lower() in ua.lower():
+            return True
+    return False
+
+
+def check_malicious_request(request_data: str) -> Tuple[bool, str]:
+    """检查恶意请求
+    
+    Args:
+        request_data: 请求数据
+    
+    Returns:
+        Tuple[bool, str]: (是否为恶意请求, 检测到的攻击类型)
+    """
+    if detect_sql_injection(request_data):
+        return True, "SQL注入攻击"
+    if detect_xss(request_data):
+        return True, "XSS攻击"
+    return False, ""
 
 
 # ======================== 日志辅助函数 ========================
@@ -177,7 +319,97 @@ def create_app(config_name=None) -> Flask:
         app.logger.error("数据清理钩子注册失败", exc_info=True)
         raise
     
-    # 5. 定义核心路由
+    # 5. 添加全局防护扫描中间件
+    try:
+        @app.before_request
+        def global_protection_scan():
+            """全局防护扫描中间件
+            
+            拦截所有请求并进行安全检查
+            """
+            # 获取客户端真实IP
+            client_ip = get_real_ip(request)
+            user_agent = request.headers.get('User-Agent', '未知')
+            
+            # 1. IP白名单检查
+            if is_ip_whitelisted(client_ip):
+                app.logger.info(f"IP白名单允许访问: {client_ip}")
+                return None
+            
+            # 2. IP黑名单检查
+            if is_ip_blacklisted(client_ip):
+                app.logger.warning(f"IP黑名单拒绝访问: {client_ip}")
+                abort(403, description="IP地址被禁止访问")
+            
+            # 3. IP访问频率限制
+            rate_limit_passed, remaining = check_ip_rate_limit(client_ip)
+            if not rate_limit_passed:
+                app.logger.warning(f"IP访问频率限制: {client_ip} | 超过限制")
+                abort(429, description="请求过于频繁，请稍后再试")
+            
+            # 4. 异常User-Agent检测
+            if detect_abnormal_ua(user_agent):
+                app.logger.warning(f"异常User-Agent检测: {client_ip} | UA: {user_agent}")
+                # 可以选择记录日志或者直接拒绝访问
+                # abort(403, description="不允许的访问方式")
+            
+            # 5. 拦截特定扫描User-Agent
+            if block_scan_ua(user_agent):
+                app.logger.warning(f"扫描User-Agent拦截: {client_ip} | UA: {user_agent}")
+                abort(403, description="不允许的访问方式")
+            
+            # 5. 恶意请求检测
+            if current_config.MALICIOUS_REQUEST_DETECTION:
+                # 收集请求数据进行检测
+                request_data = ""
+                
+                # 检查URL参数
+                if request.args:
+                    request_data += str(request.args)
+                
+                # 检查表单数据
+                if request.form:
+                    request_data += str(request.form)
+                
+                # 检查JSON数据
+                try:
+                    if request.is_json:
+                        request_data += str(request.get_json())
+                except Exception:
+                    pass
+                
+                # 检查请求头中的可疑字段
+                suspicious_headers = ['Referer', 'X-Forwarded-For', 'X-Real-IP']
+                for header in suspicious_headers:
+                    if header in request.headers:
+                        request_data += request.headers[header]
+                
+                # 检测恶意请求
+                is_malicious, attack_type = check_malicious_request(request_data)
+                if is_malicious:
+                    # 记录恶意请求
+                    if client_ip in malicious_requests:
+                        malicious_requests[client_ip] += 1
+                    else:
+                        malicious_requests[client_ip] = 1
+                    
+                    app.logger.warning(f"恶意请求检测: {client_ip} | 攻击类型: {attack_type} | 数据: {request_data[:200]}...")
+                    
+                    # 多次恶意请求可考虑加入黑名单
+                    if malicious_requests[client_ip] >= 5:
+                        app.logger.critical(f"IP多次恶意请求，建议加入黑名单: {client_ip} | 次数: {malicious_requests[client_ip]}")
+                    
+                    abort(403, description="请求包含恶意内容")
+            
+            # 6. 记录请求信息（可选）
+            app.logger.info(f"防护扫描通过: {client_ip} | 剩余请求: {remaining} | UA: {user_agent}")
+            
+        app.logger.info("全局防护扫描中间件注册完成")
+    except Exception as e:
+        app.logger.error("全局防护扫描中间件注册失败", exc_info=True)
+        raise
+
+    # 6. 定义核心路由
     try:
         _register_routes(app)
         app.logger.info(f"核心路由注册完成，当前路由规则数: {len(app.url_map._rules)}")
@@ -311,8 +543,20 @@ def _register_routes(app: Flask) -> None:
         """
         # 记录详细403错误信息
         log_request_details(app.logger, request, 'warning', 
-                           f"禁止访问: {request.path}")
+                           f"禁止访问: {request.path} | 原因: {str(error.description) if hasattr(error, 'description') else '未知原因'}")
         return '<h1>禁止访问</h1>', 403
+
+
+    @app.errorhandler(429)
+    def too_many_requests(error) -> tuple:
+        """429请求频率限制错误处理
+        
+        记录详细错误信息并返回自定义429页面
+        """
+        # 记录详细429错误信息
+        log_request_details(app.logger, request, 'warning', 
+                           f"请求过于频繁: {request.path}")
+        return '<h1>请求过于频繁，请稍后再试</h1>', 429
     
     @app.errorhandler(405)
     def method_not_allowed(error) -> tuple:
@@ -323,7 +567,7 @@ def _register_routes(app: Flask) -> None:
         # 记录详细405错误信息
         log_request_details(app.logger, request, 'warning', 
                            f"方法不允许: {request.path}")
-        return redirect(url_for('index'))
+        return '<h1>方法不允许</h1>', 405
     
     @app.errorhandler(500)
     def internal_server_error(error) -> tuple:

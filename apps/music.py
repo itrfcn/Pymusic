@@ -359,7 +359,7 @@ def userlist(uid: int):
 @music.route('/song/url/<int:song_id>')
 def song_url(song_id: int):
     try:
-        level = request.args.get('level', 'lossless')
+        level = current_app.config.get('DEFAULT_MUSIC_QUALITY', 'standard')
         cookies = parse_cookie(read_cookie())
         url_data = get_song_url(song_id, level, cookies)
 

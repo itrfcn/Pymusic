@@ -1,4 +1,4 @@
-from flask import Blueprint, request, redirect, url_for, session, jsonify, current_app
+from flask import Blueprint, request, redirect, url_for, session, jsonify, current_app, render_template
 from apps.tool.Mysql import Mysql
 import hashlib
 from functools import wraps
@@ -37,21 +37,39 @@ user = Blueprint('user', __name__, url_prefix='/user')
 # 用户输入验证函数（增强防注入）
 def validate_user_input(username, password, confirm_password=None):
     """验证用户输入"""
-    if not username or not password:
+    # 如果用户名和密码都为空，返回错误
+    if not username and not password:
         return '用户名和密码不能为空'
+    
+    # 如果只传入了用户名，则只验证用户名
+    if username and not password:
+        pass  # 跳过密码验证
+    
+    # 如果只传入了密码，则只验证密码
+    elif not username and password:
+        pass  # 跳过用户名验证
+    
+    # 如果两者都传入了，则都验证
+    else:
+        if not username or not password:
+            return '用户名和密码不能为空'
 
-    # 检测非法字符，防止注入
-    if re.search(r'[<>\"\'%;()&+\\\/\[\]{}\*\?\|\^~`]', username):
-        return '用户名包含非法字符'
+    # 验证用户名（如果提供了）
+    if username:
+        # 检测非法字符，防止注入
+        if re.search(r'[<>"\'%;()&+\\\/\[\]{}*\?\|^~`]', username):
+            return '用户名包含非法字符'
 
-    if len(username) < 3 or len(username) > 20:
-        return '用户名长度应在3-20个字符之间'
+        if len(username) < 3 or len(username) > 20:
+            return '用户名长度应在3-20个字符之间'
 
-    if len(password) < 6 or len(password) > 20:
-        return '密码长度应在6-20个字符之间'
+    # 验证密码（如果提供了）
+    if password:
+        if len(password) < 6 or len(password) > 20:
+            return '密码长度应在6-20个字符之间'
 
-    if confirm_password and password != confirm_password:
-        return '两次输入的密码不一致'
+        if confirm_password and password != confirm_password:
+            return '两次输入的密码不一致'
 
     return None
 
@@ -161,6 +179,23 @@ def register():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+# 修改个人信息页面
+@user.route('/edit_profile')
+@login_required
+def edit_profile():
+    try:
+        user_id = session.get('user_id')
+        with Mysql() as mysql:
+            # 获取当前用户信息
+            user_info = mysql.sql("SELECT username, netease_user_id FROM user WHERE id = %s", [user_id])
+            if user_info and isinstance(user_info, list) and len(user_info) > 0:
+                username = user_info[0].get('username', '')
+                netease_user_id = user_info[0].get('netease_user_id', '')
+                return render_template('user/edit_profile.html', username=username, netease_user_id=netease_user_id)
+    except Exception as e:
+        current_app.logger.error(f"获取用户信息失败: {e}")
+    return render_template('user/edit_profile.html')
 
 # 创建歌单接口
 @user.route('/create_playlist', methods=['POST'])
@@ -877,7 +912,10 @@ def update_username():
         user_id = session.get('user_id')
         
         # 获取并验证新用户名
-        data = request.json or dict(request.form)
+        # 先尝试获取表单数据，如果没有再尝试获取JSON数据
+        data = dict(request.form)
+        if not data:
+            data = request.get_json(silent=True, force=True) or {}
         new_username = data.get('new_username', '').strip()
         
         # 验证新用户名格式
@@ -906,7 +944,7 @@ def update_username():
                 [new_username, user_id]
             )
             
-            if isinstance(result, int) and result > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
                 # 更新会话中的用户名
                 session['username'] = new_username
                 current_app.logger.info(f"用户 {user_id} 修改用户名成功: {new_username}")
@@ -931,8 +969,11 @@ def update_password():
         user_id = session.get('user_id')
         
         # 获取并验证密码信息
-        data = request.json or dict(request.form)
-        old_password = data.get('old_password', '').strip()
+        # 先尝试获取表单数据，如果没有再尝试获取JSON数据
+        data = dict(request.form)
+        if not data:
+            data = request.get_json(silent=True, force=True) or {}
+        old_password = data.get('old_password', data.get('current_password', '')).strip()
         new_password = data.get('new_password', '').strip()
         confirm_password = data.get('confirm_password', '').strip()
         
@@ -961,14 +1002,87 @@ def update_password():
                 [hashed_new_password, user_id]
             )
             
-            if isinstance(result, int) and result > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
                 current_app.logger.info(f"用户 {user_id} 修改密码成功")
                 return jsonify({'message': '密码修改成功'}), 200
             else:
                 return jsonify({'message': '密码修改失败'}), 500
-                
     except Exception as e:
         current_app.logger.error(f"修改密码错误: {str(e)}")
+        return jsonify({'message': '系统错误，请稍后重试'}), 500
+
+
+# 同时修改用户名和密码接口
+@user.route('/update_account_info', methods=['POST'])
+@login_required
+def update_account_info():
+    """
+    同时修改用户名和密码
+    POST参数: new_username (新用户名), current_password (当前密码), new_password (新密码)
+    """
+    try:
+        user_id = session.get('user_id')
+        
+        # 获取并验证所有信息
+        # 先尝试获取表单数据，如果没有再尝试获取JSON数据
+        data = dict(request.form)
+        if not data:
+            data = request.get_json(silent=True, force=True) or {}
+        new_username = data.get('new_username', '').strip()
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        
+        # 验证所有字段
+        if not new_username:
+            return jsonify({'message': '用户名不能为空'}), 400
+        
+        if not current_password:
+            return jsonify({'message': '当前密码不能为空'}), 400
+        
+        if not new_password:
+            return jsonify({'message': '新密码不能为空'}), 400
+        
+        # 验证用户名和密码格式
+        error = validate_user_input(new_username, new_password)
+        if error:
+            return jsonify({'message': error}), 400
+        
+        with Mysql() as mysql:
+            # 检查当前密码是否正确
+            hashed_current_password = hashlib.sha256(current_password.encode()).hexdigest()
+            user = mysql.sql(
+                "SELECT id FROM user WHERE id=%s AND password=%s AND deleted=0 AND status=0",
+                [user_id, hashed_current_password]
+            )
+            
+            if not (isinstance(user, list) and len(user) > 0):
+                return jsonify({'message': '当前密码错误'}), 400
+            
+            # 检查新用户名是否已被其他用户使用
+            existing_user = mysql.sql(
+                "SELECT id FROM user WHERE username=%s AND deleted=0 AND status=0 AND id!=%s",
+                [new_username, user_id]
+            )
+            
+            if isinstance(existing_user, list) and len(existing_user) > 0:
+                return jsonify({'message': '用户名已存在'}), 400
+            
+            # 同时更新用户名和密码
+            hashed_new_password = hashlib.sha256(new_password.encode()).hexdigest()
+            result = mysql.sql(
+                "UPDATE user SET username=%s, password=%s, update_time=CURRENT_TIMESTAMP WHERE id=%s",
+                [new_username, hashed_new_password, user_id]
+            )
+            
+            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
+                # 更新会话中的用户名
+                session['username'] = new_username
+                current_app.logger.info(f"用户 {user_id} 同时修改用户名和密码成功: {new_username}")
+                return jsonify({'message': '账户信息修改成功'}), 200
+            else:
+                return jsonify({'message': '账户信息修改失败'}), 500
+    except Exception as e:
+        current_app.logger.error(f"修改账户信息错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
 
@@ -984,7 +1098,10 @@ def update_netease_user_id():
         user_id = session.get('user_id')
         
         # 获取并验证新的网易云用户ID
-        data = request.json or dict(request.form)
+        # 先尝试获取表单数据，如果没有再尝试获取JSON数据
+        data = dict(request.form)
+        if not data:
+            data = request.get_json(silent=True, force=True) or {}
         new_netease_user_id = data.get('new_netease_user_id', '')
         
         # 验证参数

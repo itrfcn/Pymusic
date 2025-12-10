@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>音悦台 - 修改个人信息</title>
+    <icon rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon" sizes="32x32">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        /* --- CSS 变量定义 --- */
+        :root {
+            --primary-color: #6a11cb;
+            --secondary-color: #2575fc;
+            --bg-gradient: linear-gradient(135deg, #121212 0%, #281c3e 50%, #121212 100%);
+            --card-bg: rgba(0, 0, 0, 0.85);
+            --text-color: #fff;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --input-focus-shadow: 0 0 0 3px rgba(106, 17, 203, 0.5);
+            --success-color: #4caf50;
+            --error-color: #f44336;
+        }
+
+        /* --- 基础与重置 --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-gradient);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- 音乐背景特效 --- */
+        .music-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(106, 17, 203, 0.2) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        /* --- 黑胶唱片动画 --- */
+        .vinyl-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            height: 450px;
+            z-index: -1;
+            opacity: 0.25;
+        }
+
+        .vinyl {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #111;
+            border: 18px solid #333;
+            position: relative;
+            animation: spin 8s linear infinite;
+        }
+
+        .vinyl::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #555;
+            border: 12px solid #333;
+        }
+
+        .vinyl::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #222;
+        }
+
+        .vinyl-texture {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: repeating-radial-gradient(
+                circle at center,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.03) 2px,
+                rgba(255, 255, 255, 0.03) 4px
+            );
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- 主容器 --- */
+        .container {
+            width: 100%;
+            height: 100vh;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- 头部样式 --- */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 24px;
+            text-align: center;
+            height: 120px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* --- 返回首页按钮 --- */
+        .back-button-container {
+            padding: 16px 24px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- 表单容器 --- */
+        .form-container {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* 滚动条样式优化 */
+        .form-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .form-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-container::-webkit-scrollbar-thumb {
+            background: rgba(106, 17, 203, 0.5);
+            border-radius: 4px;
+        }
+        
+        .form-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(106, 17, 203, 0.7);
+        }
+
+        /* --- 表单区域 --- */
+        .form-section {
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .form-section h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            position: relative;
+            padding-bottom: 8px;
+        }
+
+        .form-section h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 2px;
+        }
+
+        /* --- 输入组样式 --- */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* --- 按钮样式 --- */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(106, 17, 203, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- Toast提示样式 --- */
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            animation: toastAnimation 0.3s ease-in-out;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .message.success {
+            background: rgba(76, 175, 80, 0.9);
+            border: 1px solid rgba(76, 175, 80, 1);
+        }
+
+        .message.error {
+            background: rgba(244, 67, 54, 0.9);
+            border: 1px solid rgba(244, 67, 54, 1);
+        }
+
+        @keyframes toastAnimation {
+            0% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* --- 响应式设计 --- */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+                height: 100px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .back-button-container {
+                padding: 12px 16px;
+            }
+
+            .form-container {
+                padding: 16px;
+            }
+
+            .form-section {
+                margin-bottom: 32px;
+            }
+
+            .form-section h2 {
+                font-size: 18px;
+            }
+
+            .input-group input {
+                padding: 10px 14px;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 12px;
+            }
+
+            .message {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 16px;
+                height: 90px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 12px;
+            }
+
+            .back-button-container {
+                padding: 8px 12px;
+            }
+
+            .form-container {
+                padding: 12px;
+            }
+
+            .form-section {
+                margin-bottom: 24px;
+            }
+
+            .form-section h2 {
+                font-size: 16px;
+            }
+
+            .input-group input {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .btn {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 音乐背景特效 -->
+    <div class="music-bg"></div>
+    
+    <!-- 黑胶唱片动画 -->
+    <div class="vinyl-container">
+        <div class="vinyl">
+            <div class="vinyl-texture"></div>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1><i class="fa fa-user-circle" aria-hidden="true"></i> 修改个人信息</h1>
+            <p>更新您的账户信息</p>
+        </div>
+
+        <!-- 返回首页按钮 -->
+        <div class="back-button-container">
+            <button class="btn btn-back" onclick="window.location.href='/'">
+                <i class="fa fa-home" aria-hidden="true"></i> 返回首页
+            </button>
+        </div>
+        
+        <!-- 表单容器 -->
+        <div class="form-container">
+            <!-- 消息提示 -->
+            <div id="message" class="message"></div>
+
+            <!-- 用户名修改 -->
+            <div class="form-section">
+                <h2><i class="fa fa-user-circle" aria-hidden="true"></i> 修改用户名</h2>
+                <div class="input-group">
+                    <label for="username">新用户名</label>
+                    <input type="text" id="username" placeholder="请输入新用户名" minlength="3" maxlength="20" value="{{ username }}">
+                </div>
+                <button id="save-username-btn" class="btn btn-primary" onclick="updateUsername()">
+                    <i class="fa fa-save" aria-hidden="true"></i> 保存用户名
+                </button>
+            </div>
+
+            <!-- 密码修改 -->
+            <div class="form-section">
+                <h2><i class="fa fa-lock" aria-hidden="true"></i> 修改密码</h2>
+                <div class="input-group">
+                    <label for="current_password">当前密码</label>
+                    <input type="password" id="current_password" placeholder="请输入当前密码">
+                </div>
+                <div class="input-group">
+                    <label for="new_password">新密码</label>
+                    <input type="password" id="new_password" placeholder="请输入新密码" minlength="6" maxlength="20">
+                </div>
+                <div class="input-group">
+                    <label for="confirm_password">确认新密码</label>
+                    <input type="password" id="confirm_password" placeholder="请再次输入新密码">
+                </div>
+                <button id="save-password-btn" class="btn btn-primary" onclick="updatePassword()">
+                    <i class="fa fa-save" aria-hidden="true"></i> 保存密码
+                </button>
+            </div>
+
+            <!-- 网易云ID修改 -->
+            <div class="form-section">
+                <h2><i class="fa fa-music" aria-hidden="true"></i> 修改网易云ID</h2>
+                <div class="input-group">
+                    <label for="netease_user_id">网易云用户ID</label>
+                    <input type="text" id="netease_user_id" placeholder="请输入网易云用户ID" value="{{ netease_user_id or '' }}">
+                </div>
+                <button id="save-netease-btn" class="btn btn-primary" onclick="updateNeteaseUserId()">
+                    <i class="fa fa-save" aria-hidden="true"></i> 保存网易云ID
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 显示消息
+        function showMessage(message, type) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = message;
+            messageElement.className = `message ${type}`;
+            messageElement.style.display = 'block';
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                messageElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // 更新用户名
+        function updateUsername() {
+            const username = document.getElementById('username').value;
+            const btn = document.getElementById('save-username-btn');
+            btn.disabled = true;
+            
+            // 验证用户名
+            if (username.length < 3) {
+                showMessage('用户名长度不能少于3个字符', 'error');
+                return;
+            }
+            
+            if (username.length > 20) {
+                showMessage('用户名长度不能超过20个字符', 'error');
+                return;
+            }
+            
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showMessage('用户名只能包含字母、数字和下划线', 'error');
+                return;
+            }
+            
+            // 发送请求
+            fetch('/user/update_username', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'new_username': username
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === '用户名修改成功') {
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.message || '用户名更新失败', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('更新失败，请重试', 'error');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // 1秒后重新启用按钮
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 1000);
+            });
+        }
+
+        // 更新密码
+        function updatePassword() {
+            const currentPassword = document.getElementById('current_password').value;
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const btn = document.getElementById('save-password-btn');
+            btn.disabled = true;
+            
+            // 验证密码
+            if (currentPassword === '') {
+                showMessage('请输入当前密码', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showMessage('新密码长度不能少于6个字符', 'error');
+                return;
+            }
+            
+            if (newPassword.length > 20) {
+                showMessage('新密码长度不能超过20个字符', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showMessage('两次输入的新密码不一致', 'error');
+                return;
+            }
+            
+            if (newPassword === currentPassword) {
+                showMessage('新密码不能与当前密码相同', 'error');
+                return;
+            }
+            
+            if (newPassword.includes(' ')) {
+                showMessage('密码不能包含空格', 'error');
+                return;
+            }
+            
+            // 发送请求
+            fetch('/user/update_password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'old_password': currentPassword,
+                    'new_password': newPassword,
+                    'confirm_password': confirmPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === '密码修改成功') {
+                    showMessage(data.message, 'success');
+                    // 清空密码输入框
+                    document.getElementById('current_password').value = '';
+                    document.getElementById('new_password').value = '';
+                    document.getElementById('confirm_password').value = '';
+                } else {
+                    showMessage(data.message || '密码更新失败', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('更新失败，请重试', 'error');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // 1秒后重新启用按钮
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 1000);
+            });
+        }
+
+        // 更新网易云ID
+        function updateNeteaseUserId() {
+            const neteaseUserId = document.getElementById('netease_user_id').value;
+            const btn = document.getElementById('save-netease-btn');
+            btn.disabled = true;
+            
+            // 验证网易云ID
+            if (neteaseUserId === '') {
+                showMessage('请输入网易云ID', 'error');
+                return;
+            }
+            
+            if (!/^[0-9]+$/.test(neteaseUserId)) {
+                showMessage('网易云ID只能包含数字', 'error');
+                return;
+            }
+            
+            if (neteaseUserId.length > 10) {
+                showMessage('网易云ID长度不能超过10个字符', 'error');
+                return;
+            }
+            
+            // 发送请求
+            fetch('/user/update_netease_user_id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'new_netease_user_id': neteaseUserId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === '网易云用户ID修改成功') {
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.message || '网易云ID更新失败', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('更新失败，请重试', 'error');
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>

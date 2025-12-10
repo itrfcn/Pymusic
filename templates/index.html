@@ -70,7 +70,7 @@
                 </div>
                 <div class="user-profile">
                     {% if session.get('username') %}
-                        <span class="user-name">{{ session.get('username') }}</span>
+                        <span class="user-name"><a href="/user/edit_profile">{{ session.get('username') }}</a></span>
                         <!-- 待优化 -->
                         <a href="/user/logout" class="btn btn-logout">退出</a>
                     {% else %}

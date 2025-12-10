@@ -36,84 +36,7 @@
             position: relative;
         }
 
-        /* --- 音乐背景特效 --- */
-        .music-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, rgba(106, 17, 203, 0.2) 0%, transparent 70%);
-            z-index: -1;
-        }
 
-        /* --- 黑胶唱片动画 --- */
-        .vinyl-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 450px;
-            height: 450px;
-            z-index: -1;
-            opacity: 0.25;
-        }
-
-        .vinyl {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: #111;
-            border: 18px solid #333;
-            position: relative;
-            animation: spin 8s linear infinite;
-        }
-
-        .vinyl::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: #555;
-            border: 12px solid #333;
-        }
-
-        .vinyl::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #222;
-        }
-
-        .vinyl-texture {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: repeating-radial-gradient(
-                circle at center,
-                transparent,
-                transparent 2px,
-                rgba(255, 255, 255, 0.03) 2px,
-                rgba(255, 255, 255, 0.03) 4px
-            );
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
 
         /* --- 主容器 --- */
         .container {
@@ -440,15 +363,6 @@
     </style>
 </head>
 <body>
-    <!-- 音乐背景特效 -->
-    <div class="music-bg"></div>
-    
-    <!-- 黑胶唱片动画 -->
-    <div class="vinyl-container">
-        <div class="vinyl">
-            <div class="vinyl-texture"></div>
-        </div>
-    </div>
 
     <!-- 主容器 -->
     <div class="container">

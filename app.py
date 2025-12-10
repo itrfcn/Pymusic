@@ -149,6 +149,9 @@ def check_malicious_request(request_data: str) -> Tuple[bool, str]:
     Returns:
         Tuple[bool, str]: (是否为恶意请求, 检测到的攻击类型)
     """
+    # 恶意请求检测逻辑
+    # 注：cover_url字段已在收集请求数据时被移除，避免Base64被误判
+    
     if detect_sql_injection(request_data):
         return True, "SQL注入攻击"
     if detect_xss(request_data):
@@ -374,7 +377,14 @@ def create_app(config_name=None) -> Flask:
                 # 检查JSON数据
                 try:
                     if request.is_json:
-                        request_data += str(request.get_json())
+                        json_data = request.get_json()
+                        # 特殊处理：移除cover_url字段以避免Base64被误判
+                        if isinstance(json_data, dict) and 'cover_url' in json_data:
+                            json_data_copy = json_data.copy()
+                            del json_data_copy['cover_url']
+                            request_data += str(json_data_copy)
+                        else:
+                            request_data += str(json_data)
                 except Exception:
                     pass
                 

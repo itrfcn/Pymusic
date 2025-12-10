@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -11,6 +12,10 @@ class Config:
     DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() in ('true', '1', 't')
     TESTING = False
     TEMPLATES_AUTO_RELOAD = True
+    
+    # Session配置
+    PERMANENT_SESSION_LIFETIME = timedelta(days=int(os.environ.get('SESSION_LIFETIME_DAYS', 7)))  # 从环境变量读取session存活时间，默认7天
+    SESSION_PERMANENT = True  # 启用持久化session
     
     # 服务器配置
     HOST = os.environ.get('HOST', '0.0.0.0')

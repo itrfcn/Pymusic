@@ -111,6 +111,9 @@ Pymusic/
 | `id` | INT | PRIMARY KEY AUTO_INCREMENT | 用户ID |
 | `username` | VARCHAR(50) | NOT NULL UNIQUE | 用户名 |
 | `password` | VARCHAR(100) | NOT NULL | 加密后的密码 |
+| `netease_user_id` | BIGINT | NULL | 网易云用户ID |
+| `status` | TINYINT(1) | DEFAULT 0 NOT NULL | 用户状态(0:正常, 1:冻结, 2:禁用等) |
+| `deleted` | TINYINT(1) | DEFAULT 0 NOT NULL | 逻辑删除标记(0:未删除, 1:已删除) |
 | `create_time` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP NULL | 创建时间 |
 | `update_time` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 
@@ -136,12 +139,13 @@ Pymusic/
 | `name` | VARCHAR(100) | NOT NULL | 歌单名称 |
 | `cover_url` | LONGTEXT | NULL | 歌单封面图片URL |
 | `description` | TEXT | NULL | 歌单描述 |
+| `deleted` | TINYINT(1) | DEFAULT 0 NOT NULL | 逻辑删除标记(0:未删除, 1:已删除) |
 | `create_time` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP NULL | 创建时间 |
 | `update_time` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 
 **表约束和索引：**
 - 唯一约束: `unique_user_playlist` - `user_id`和`name`组合，确保用户歌单名称唯一
-- 外键约束: `playlist_ibfk_1` - `user_id`引用`tabl_user`表的`id`(注意：表名可能有误，应为`user`)
+- 外键约束: `playlist_ibfk_1` - `user_id`引用`user`表的`id`
 - 索引: `idx_playlist_user_id` - 基于`user_id`的单列索引
 
 ### 播放列表歌曲表 (playlist_song)

@@ -1,11 +1,15 @@
 -- 用户表
 CREATE TABLE user (
-    id          INT AUTO_INCREMENT
+    id              INT AUTO_INCREMENT
         PRIMARY KEY,
-    username    VARCHAR(50)                         NOT NULL,
-    password    VARCHAR(100)                        NOT NULL,
-    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL,
-    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    username        VARCHAR(50)                         NOT NULL,
+    password        VARCHAR(100)                        NOT NULL,
+    netease_user_id BIGINT                              NULL,
+    status          TINYINT(1) DEFAULT 0                NOT NULL,
+    deleted         TINYINT(1) DEFAULT 0                NOT NULL,
+    is_admin        TINYINT(1) DEFAULT 0                NOT NULL,
+    create_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL,
+    update_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT username
         UNIQUE (username)
 );
@@ -38,12 +42,13 @@ CREATE TABLE playlist (
     name        VARCHAR(100)                        NOT NULL,
     cover_url   LONGTEXT                            NULL,
     description TEXT                                NULL,
+    deleted     TINYINT(1) DEFAULT 0                NOT NULL,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT unique_user_playlist
         UNIQUE (user_id, name),
     CONSTRAINT playlist_ibfk_1
-        FOREIGN KEY (user_id) REFERENCES tabl_user (id)
+        FOREIGN KEY (user_id) REFERENCES user (id)
 );
 
 CREATE INDEX idx_playlist_user_id

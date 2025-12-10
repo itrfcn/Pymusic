@@ -1008,7 +1008,8 @@ def update_netease_user_id():
                 [netease_user_id_value, user_id]
             )
             
-            if isinstance(result, int) and result > 0:
+            # 检查更新是否成功，Mysql.update返回 (count, rowid)
+            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
                 # 同步更新session中的netease_user_id
                 session['netease_user_id'] = netease_user_id_value
                 current_app.logger.info(f"用户 {user_id} 修改网易云用户ID成功: {netease_user_id_value}")

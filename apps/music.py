@@ -22,16 +22,42 @@ MUSIC_LEVEL_MAP = {
     'jyeffect': "高清环绕声",
     'jymaster': "超清母带"
 }
-DEFAULT_HEADERS = {
+# 基础请求头（包含两个请求头的共同字段）
+BASE_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/2.10.2.200154',
-    'Referer': '',
-}
-WEB_HEADERS = {
-    # 模拟网易云音乐桌面版客户端的 User-Agent
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/2.10.2.200154',
-    'Referer': 'https://music.163.com/',
+    # 补充核心风控字段
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Connection': 'keep-alive',
+    'Origin': 'https://music.163.com',  # 适配跨域校验
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors'
 }
 
+# 通过合并BASE_HEADERS创建DEFAULT_HEADERS和WEB_HEADERS
+# 默认请求头（基础版，Referer留空场景）
+DEFAULT_HEADERS = BASE_HEADERS.copy()
+DEFAULT_HEADERS.update({
+    'Referer': '',
+    'Sec-Fetch-Site': 'same-site',
+    # 网易云客户端专属标识（降低风控概率）
+    'X-Real-IP': '127.0.0.1',
+    'X-Forwarded-For': '127.0.0.1'
+})
+
+# 网页版请求头（适配music.163.com接口）
+WEB_HEADERS = BASE_HEADERS.copy()
+WEB_HEADERS.update({
+    'Referer': 'https://music.163.com/',
+    'Host': 'music.163.com',  # 明确主机名，避免解析错误
+    'Sec-Fetch-Site': 'same-origin',
+    # 网易云网页版专属字段
+    'DNT': '1',
+    'Sec-Ch-Ua': '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"Windows"'
+})
 
 # ========== 数据模型 ==========
 @dataclass
@@ -329,7 +355,26 @@ def get_playlist(sid: int):
         url = f'https://music.163.com/api/playlist/detail?id={sid}'
         # 添加Cookie参数
         headers_with_cookie = WEB_HEADERS.copy()
-        headers_with_cookie['Cookie'] = 'os=pc'
+        # 优先使用配置文件中的Cookie
+        netease_cookie = current_app.config.get('NETEASE_MUSIC_COOKIE', '').strip()
+        
+        # 确保os=pc被添加到cookie中
+        if netease_cookie:
+            # 如果配置文件中有cookie，检查是否已包含os=pc
+            # 分割cookie键值对，忽略大小写和空格
+            cookie_pairs = netease_cookie.lower().split(';')
+            has_os_pc = any(pair.strip().startswith('os=pc') for pair in cookie_pairs)
+            
+            if not has_os_pc:
+                # 如果没有，添加os=pc到cookie中
+                headers_with_cookie['Cookie'] = f'{netease_cookie}; os=pc'
+            else:
+                # 如果已有os=pc，直接使用配置文件中的cookie
+                headers_with_cookie['Cookie'] = netease_cookie
+        else:
+            # 如果没有配置Cookie，使用默认的os=pc
+            headers_with_cookie['Cookie'] = 'os=pc'
+            current_app.logger.warning("使用默认Cookie，部分功能可能受限")
         response = requests.get(url, headers=headers_with_cookie, timeout=10)
         response.raise_for_status()
         return jsonify(response.json())

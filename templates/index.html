@@ -29,6 +29,10 @@
                     {% endif %}
                     <li {% if page == 'doc-163' %}class="active"{% endif %}><a class="nav-link" href="/doc-163"><i
                             class="fa-solid fa-compact-disc"></i><span>音乐解析</span></a></li>
+                    {% if session.get('username') %}
+                    <li {% if page == 'netease_playlists' %}class="active"{% endif %}><a class="nav-link" href="/netease_playlists"><i
+                            class="fa-solid fa-music"></i><span>网易云歌单</span></a></li>
+                    {% endif %}
                     <li {% if page == 'about' %}class="active"{% endif %}><a class="nav-link" href="/about"><i
                             class="fa-solid fa-circle-info"></i><span>关于我们</span></a></li>
                 </ul>

@@ -1,0 +1,933 @@
+<!-- 网易云歌单页面 -->
+<div class="netease-playlists-container">
+    <div class="page-header">
+        <h1><i class="fa-brands fa-cloud-music"></i> 网易云歌单</h1>
+        <p>设置您的网易云音乐ID以获取您的歌单</p>
+    </div>
+
+    <!-- 设置网易云ID部分 -->
+    <div class="netease-settings">
+        <div class="settings-card">
+            <h2>我的网易云ID</h2>
+            <div class="settings-form">
+                <input type="text" id="neteaseUserId" placeholder="请输入您的网易云用户ID" />
+                <button id="saveNeteaseIdBtn" class="btn btn-primary">保存</button>
+            </div>
+            <div id="settingsMessage" class="message"></div>
+        </div>
+    </div>
+
+    <!-- 网易云歌单列表部分 -->
+    <div class="netease-playlists">
+        <div class="playlists-header">
+            <h2>我的网易云歌单</h2>
+            <button id="refreshPlaylistsBtn" class="btn btn-secondary">
+                <i class="fa-solid fa-arrows-rotate"></i> 刷新
+            </button>
+        </div>
+        <div id="playlistsList" class="playlists-container">
+            <!-- 歌单将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <!-- 歌单详情弹窗 -->
+    <div id="playlist-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">歌单详情</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="playlist-detail">
+                    <img id="detail-cover" src="" alt="歌单封面" class="detail-cover">
+                    <div class="detail-info">
+                        <h2 id="detail-name"></h2>
+                        <p>创建者: <span id="detail-creator"></span></p>
+                        <p>播放量: <span id="detail-playcount"></span></p>
+                        <p>歌曲数量: <span id="detail-songcount"></span></p>
+                    </div>
+                </div>
+                <h4>歌曲列表</h4>
+                <ul id="song-list" class="song-list">
+                    <!-- 歌曲列表将动态插入 -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取当前用户信息
+        fetch('/user/get_user_info')
+            .then(response => response.json())
+            .then(data => {
+                if (data.data && data.data.netease_user_id) {
+                    document.getElementById('neteaseUserId').value = data.data.netease_user_id;
+                    // 如果已设置ID，自动加载歌单
+                    loadNeteasePlaylists(data.data.netease_user_id);
+                }
+            })
+            .catch(error => {
+                showToast('获取用户信息失败', 'error');
+            });
+
+        // 保存网易云ID按钮点击事件
+        document.getElementById('saveNeteaseIdBtn').addEventListener('click', function() {
+            const neteaseUserId = document.getElementById('neteaseUserId').value.trim();
+            const messageDiv = document.getElementById('settingsMessage');
+            const saveBtn = this;
+
+            if (!neteaseUserId) {
+                messageDiv.textContent = '请输入网易云用户ID';
+                messageDiv.className = 'message error';
+                return;
+            }
+
+            // 验证ID格式
+            if (!/^\d+$/.test(neteaseUserId)) {
+                messageDiv.textContent = '网易云用户ID必须是数字';
+                messageDiv.className = 'message error';
+                return;
+            }
+
+            // 禁用按钮，防止重复点击
+            saveBtn.disabled = true;
+            saveBtn.textContent = '保存中...';
+            
+            // 创建一个Promise，确保按钮至少禁用1秒
+            const minDelayPromise = new Promise(resolve => {
+                setTimeout(resolve, 1000);
+            });
+
+            // 调用API更新网易云ID
+            const apiPromise = fetch('/user/update_netease_user_id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ new_netease_user_id: neteaseUserId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === '修改网易云用户ID成功') {
+                    messageDiv.textContent = '保存成功！';
+                    messageDiv.className = 'message success';
+                    // 保存成功后加载歌单
+                    loadNeteasePlaylists(neteaseUserId);
+                } else {
+                    messageDiv.textContent = data.message || '保存失败';
+                    messageDiv.className = 'message error';
+                }
+            })
+            .catch(error => {
+                showToast('更新网易云ID失败', 'error');
+                messageDiv.textContent = '网络错误，请稍后重试';
+                messageDiv.className = 'message error';
+            });
+            
+            // 等待API请求和最小延迟都完成后，才重新启用按钮
+            Promise.all([apiPromise, minDelayPromise])
+            .finally(() => {
+                // 无论成功或失败，都重新启用按钮
+                saveBtn.disabled = false;
+                saveBtn.textContent = '保存';
+            });
+        });
+
+        // 刷新歌单按钮点击事件 - 节流实现，每秒只能点击一次
+        let lastRefreshClickTime = 0;
+        document.getElementById('refreshPlaylistsBtn').addEventListener('click', function() {
+            const currentTime = Date.now();
+            if (currentTime - lastRefreshClickTime < 1000) {
+                return; // 1秒内只能点击一次
+            }
+            lastRefreshClickTime = currentTime;
+             
+            const neteaseUserId = document.getElementById('neteaseUserId').value.trim();
+            if (neteaseUserId) {
+                loadNeteasePlaylists(neteaseUserId);
+            } else {
+                showToast('请先设置网易云用户ID', 'warning');
+            }
+        });
+
+        // 数据管理对象
+        const dataStore = {
+            allPlaylists: [],      // 所有歌单数据
+            currentPlaylist: null, // 当前显示的歌单
+        };
+
+        // DOM元素缓存
+        const modalElements = {
+            modal: document.getElementById('playlist-modal'),
+            closeModal: document.querySelector('.close-modal'),
+            modalTitle: document.getElementById('modal-title'),
+            detailCover: document.getElementById('detail-cover'),
+            detailName: document.getElementById('detail-name'),
+            detailCreator: document.getElementById('detail-creator'),
+            detailPlaycount: document.getElementById('detail-playcount'),
+            detailSongcount: document.getElementById('detail-songcount'),
+            songList: document.getElementById('song-list')
+        };
+
+        // 加载网易云歌单函数
+        let isLoadingPlaylists = false; // 防重复执行标志
+        function loadNeteasePlaylists(neteaseUserId) {
+            if (isLoadingPlaylists) {
+                return; // 如果正在加载，直接返回
+            }
+            
+            isLoadingPlaylists = true; // 设置加载状态为true
+            const playlistsContainer = document.getElementById('playlistsList');
+            playlistsContainer.innerHTML = '<div class="loading">加载中...</div>';
+
+            // 调用音乐API获取网易云歌单
+            fetch(`/music/userlist/${neteaseUserId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        // 清空容器
+                        playlistsContainer.innerHTML = '';
+                        
+                        // 处理歌单数据
+                        dataStore.allPlaylists = data.playlist.map(playlist => ({
+                            id: playlist.id,
+                            name: playlist.name,
+                            cover: playlist.coverImgUrl || `https://picsum.photos/300/300?random=${playlist.id}`,
+                            playCount: playlist.playCount || 0,
+                            creator: playlist.creator ? playlist.creator.nickname : '未知创作者',
+                            tags: playlist.tags || [],
+                            songCount: playlist.trackCount || 0,
+                            songs: []
+                        }));
+                        
+                        // 遍历歌单并创建元素
+                        data.playlist.forEach(playlist => {
+                            const playlistItem = document.createElement('div');
+                            playlistItem.className = 'playlist-item';
+                            playlistItem.dataset.id = playlist.id;
+                            
+                            playlistItem.innerHTML = `
+                                <div class="playlist-cover">
+                                    <img src="${playlist.coverImgUrl || 'https://picsum.photos/150/150?random=1'}" alt="${playlist.name}">
+                                </div>
+                                <div class="playlist-info">
+                                    <h3 class="playlist-name">${playlist.name}</h3>
+                                    <p class="playlist-description">${playlist.description || '暂无描述'}</p>
+                                    <div class="playlist-meta">
+                                        <span><i class="fa-solid fa-music"></i> ${playlist.trackCount} 首歌曲</span>
+                                        <span><i class="fa-solid fa-eye"></i> ${playlist.playCount || 0} 次播放</span>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // 添加点击事件
+                            playlistItem.addEventListener('click', () => {
+                                showPlaylistDetail(playlist.id);
+                            });
+                            
+                            playlistsContainer.appendChild(playlistItem);
+                        });
+                    } else {
+                        playlistsContainer.innerHTML = '<div class="error-message">' + (data.message || '获取歌单失败') + '</div>';
+                    }
+                })
+                .catch(error => {
+                    showToast('获取网易云歌单失败:', error);
+                    playlistsContainer.innerHTML = '<div class="error-message">网络错误，请稍后重试</div>';
+                })
+                .finally(() => {
+                    isLoadingPlaylists = false; // 无论成功或失败，都重置加载状态
+                });
+        }
+
+        // 格式化播放次数
+        function formatPlayCount(count) {
+            if (typeof count !== 'number') count = parseInt(count) || 0;
+            
+            if (count >= 100000000) {
+                return (count / 100000000).toFixed(1) + '亿';
+            } else if (count >= 10000) {
+                return (count / 10000).toFixed(1) + '万';
+            }
+            return count.toString();
+        }
+
+        // 初始化弹窗
+        function initModal() {
+            // 关闭按钮点击事件
+            modalElements.closeModal.addEventListener('click', () => {
+                modalElements.modal.classList.remove('active');
+            });
+
+            // 点击弹窗外部关闭
+            modalElements.modal.addEventListener('click', (e) => {
+                if (e.target === modalElements.modal) {
+                    modalElements.modal.classList.remove('active');
+                }
+            });
+
+            // 键盘ESC键关闭
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modalElements.modal.classList.contains('active')) {
+                    modalElements.modal.classList.remove('active');
+                }
+            });
+        }
+
+        // 显示歌单详情
+        let isLoadingPlaylistDetail = false; // 防重复执行标志
+        async function showPlaylistDetail(playlistId) {
+            if (isLoadingPlaylistDetail) {
+                return; // 如果正在加载，直接返回
+            }
+            
+            isLoadingPlaylistDetail = true; // 设置加载状态为true
+            // 查找歌单数据
+            const playlist = dataStore.allPlaylists.find(p => p.id === playlistId);
+            if (!playlist) return;
+
+            // 更新弹窗基础信息
+            modalElements.modalTitle.textContent = `歌单详情 - ${playlist.name}`;
+            modalElements.detailCover.src = playlist.cover;
+            modalElements.detailCover.alt = playlist.name;
+            modalElements.detailName.textContent = playlist.name;
+            modalElements.detailCreator.textContent = playlist.creator;
+            modalElements.detailPlaycount.textContent = formatPlayCount(playlist.playCount);
+            modalElements.detailSongcount.textContent = playlist.songCount;
+
+            // 清空歌曲列表并显示加载状态
+            modalElements.songList.innerHTML = '<div class="loading">加载歌曲列表中...</div>';
+
+            try {
+                // 先检查缓存的歌曲数据
+                if (playlist.songs && playlist.songs.length > 0) {
+                    renderSongs(playlist.songs);
+                } else {
+                    // 通过API获取歌曲列表
+                    const data = await fetch(`/music/playlist/${playlistId}`);
+                    const result = await data.json();
+
+                    if (result && result.result && result.result.tracks) {
+                        // 缓存歌曲数据
+                        playlist.songs = result.result.tracks;
+                        renderSongs(result.result.tracks);
+                    } else {
+                        modalElements.songList.innerHTML = `
+                            <div class="error-message">
+                                加载歌曲列表失败
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                showToast('获取歌曲列表失败', 'error');
+                modalElements.songList.innerHTML = `
+                    <div class="error-message">
+                        加载歌曲列表出错
+                        <button class="retry-button" onclick="showPlaylistDetail(${playlistId})">重试</button>
+                    </div>
+                `;
+            } finally {
+                isLoadingPlaylistDetail = false; // 无论成功或失败，都重置加载状态
+            }
+
+            // 显示弹窗
+            modalElements.modal.classList.add('active');
+
+            // 渲染歌曲列表
+            function renderSongs(tracks) {
+                // 清空歌曲列表
+                modalElements.songList.innerHTML = '';
+
+                // 遍历渲染每首歌曲
+                tracks.forEach((song, index) => {
+                    // 格式化时长（毫秒转换为分:秒）
+                    const durationMs = song.duration;
+                    const minutes = Math.floor(durationMs / 60000);
+                    const seconds = Math.floor((durationMs % 60000) / 1000);
+                    const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                    // 获取艺术家名称
+                    const artists = song.artists ? 
+                        song.artists.map(artist => artist.name).join('/') : 
+                        (song.ar ? song.ar.map(artist => artist.name).join('/') : '未知艺术家');
+
+                    // 创建歌曲项
+                    const li = document.createElement('li');
+                    li.dataset.songId = song.id;
+                    li.className = 'song-item';
+
+                    // 设置歌曲项内容
+                    li.innerHTML = `
+                        <div class="song-index">${index + 1}</div>
+                        <div class="song-info">
+                            <div class="song-name">${song.name}</div>
+                            <div class="song-artist">${artists}</div>
+                        </div>
+                        <div class="song-duration">${formattedDuration}</div>
+                    `;
+
+                    // 添加点击播放事件
+                    li.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        
+                        // 标准化歌曲数据结构，确保与播放器兼容
+                        const normalizedTracks = normalizeTracks(tracks);
+                        const normalizedSong = normalizedTracks[index];
+                        
+                        // 尝试多种播放方法，确保兼容性
+                        playMusicWithFallback(normalizedTracks, index, normalizedSong, li);
+                    });
+                    
+                    // 标准化歌曲数据结构函数
+                    function normalizeTracks(tracks) {
+                        return tracks.map(track => {
+                            // 深拷贝以避免修改原始数据
+                            const normalized = JSON.parse(JSON.stringify(track));
+                            
+                            // 确保album字段存在且格式正确
+                            if (!normalized.album && normalized.al) {
+                                // 将al字段转换为标准album格式
+                                normalized.album = {
+                                    id: normalized.al.id,
+                                    name: normalized.al.name,
+                                    picUrl: normalized.al.picUrl || normalized.al.pic || 'https://picsum.photos/56/56?random=1'
+                                };
+                            }
+                            
+                            // 确保artists字段存在且格式正确
+                            if (!normalized.artists && normalized.ar) {
+                                // 将ar字段转换为标准artists格式
+                                normalized.artists = normalized.ar.map(artist => ({
+                                    id: artist.id,
+                                    name: artist.name
+                                }));
+                            }
+                            
+                            // 确保必要字段都存在
+                            normalized.id = normalized.id || Math.random().toString(36).substr(2, 9);
+                            normalized.name = normalized.name || '未知歌曲';
+                            normalized.duration = normalized.duration || 0;
+                            
+                            return normalized;
+                        });
+                    }
+                    
+                    // 多层回退的播放函数
+                    function playMusicWithFallback(tracks, index, song, element) {
+                        // 方案1: 使用标准的播放列表播放方法
+                        if (typeof window.playTrackFromPlaylist === 'function') {
+                            try {
+                                window.playTrackFromPlaylist(tracks, index);
+                                updateUIFeedback(element, true);
+                                return true;
+                            } catch (error) {
+                                // console.error('播放方法1失败:', error);
+                            }
+                        }
+                        
+                        // 方案2: 手动设置播放列表并调用播放函数
+                        if (typeof window.playTrack === 'function' && typeof window.currentPlaylist !== 'undefined') {
+                            try {
+                                window.currentPlaylist = tracks;
+                                window.playTrack(index);
+                                updateUIFeedback(element, true);
+                                return true;
+                            } catch (error) {
+                                // console.error('播放方法2失败:', error);
+                            }
+                        }
+                        
+                        // 方案3: 直接尝试播放单个歌曲（不依赖完整播放列表）
+                        if (typeof window.playSingleTrack === 'function') {
+                            try {
+                                window.playSingleTrack(song);
+                                updateUIFeedback(element, true);
+                                return true;
+                            } catch (error) {
+                                // console.error('播放方法3失败:', error);
+                            }
+                        }
+                        
+                        // 所有方案都失败，提供UI反馈
+                        updateUIFeedback(element, false);
+                        
+                        // 可以考虑通过模拟事件来触发播放器
+                        try {
+                            // 创建并分发一个自定义事件
+                            const playEvent = new CustomEvent('customPlayTrack', {
+                                detail: { tracks: tracks, index: index, song: song },
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            document.dispatchEvent(playEvent);
+                        } catch (error) {
+                            // 事件触发失败，给出友好提示
+                            showToast('播放歌曲失败，请重试', 'error');
+                        }
+                        
+                        return false;
+                    }
+                    
+                    // 更新UI反馈
+                    function updateUIFeedback(element, success) {
+                        // 添加视觉反馈
+                        element.classList.add(success ? 'playing' : 'play-error');
+                        
+                        // 添加动画效果
+                        element.style.transition = 'background-color 0.3s ease';
+                        element.style.backgroundColor = success ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 77, 79, 0.1)';
+                        
+                        // 短暂延迟后恢复原始样式
+                        setTimeout(() => {
+                            element.classList.remove('playing', 'play-error');
+                            element.style.backgroundColor = '';
+                        }, 200);
+                    }
+
+                    // 添加到歌曲列表
+                    modalElements.songList.appendChild(li);
+                });
+            }
+
+            // 初始化弹窗功能
+            initModal();
+        }
+    });
+</script>
+
+<style>
+    .netease-playlists-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .netease-playlists-container .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .netease-playlists-container .page-header h1 {
+        font-size: 2.5rem;
+        color: #1db954;
+        margin-bottom: 10px;
+    }
+
+    .netease-playlists-container .page-header p {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .netease-playlists-container .netease-settings {
+        margin-bottom: 40px;
+    }
+
+    .netease-playlists-container .settings-card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .netease-playlists-container .settings-card h2 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        color: #fff;
+    }
+
+    .netease-playlists-container .settings-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .netease-playlists-container .settings-form input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 1rem;
+    }
+
+    .netease-playlists-container .settings-form input:focus {
+        outline: none;
+        border-color: #1db954;
+        box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.2);
+    }
+
+    .netease-playlists-container .settings-form input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .netease-playlists-container .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .netease-playlists-container .btn-primary {
+        background-color: #1db954;
+        color: #fff;
+    }
+
+    .netease-playlists-container .btn-primary:hover {
+        background-color: #1ed760;
+        transform: translateY(-2px);
+    }
+
+    .netease-playlists-container .btn-secondary {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .netease-playlists-container .btn-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .netease-playlists-container .message {
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
+
+    .netease-playlists-container .message.success {
+        background-color: rgba(29, 185, 84, 0.2);
+        color: #1db954;
+    }
+
+    .netease-playlists-container .message.error {
+        background-color: rgba(255, 73, 73, 0.2);
+        color: #ff4949;
+    }
+
+    .netease-playlists-container .netease-playlists {
+        margin-bottom: 40px;
+    }
+
+    .netease-playlists-container .playlists-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .netease-playlists-container .playlists-header h2 {
+        font-size: 1.5rem;
+        color: #fff;
+    }
+
+    .netease-playlists-container .playlists-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .netease-playlists-container .playlist-item {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .netease-playlists-container .playlist-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .netease-playlists-container .playlist-cover {
+        width: 100%;
+        padding-top: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .netease-playlists-container .playlist-cover img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .netease-playlists-container .playlist-info {
+        padding: 15px;
+    }
+
+    .netease-playlists-container .playlist-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .netease-playlists-container .playlist-description {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 12px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .netease-playlists-container .playlist-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 50px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1.1rem;
+    }
+
+    .error-message {
+        text-align: center;
+        padding: 50px;
+        color: #ff4949;
+        font-size: 1.1rem;
+    }
+
+    /* 重试按钮样式 */
+    .retry-button {
+        margin-top: 10px;
+        padding: 5px 15px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .retry-button:hover {
+        background-color: #218838;
+    }
+
+    /* 歌单详情弹窗样式 */
+    .netease-playlists-container #playlist-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .netease-playlists-container #playlist-modal.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .netease-playlists-container .modal-content {
+        background-color: #121212;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .netease-playlists-container .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .netease-playlists-container .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+        color: #fff;
+    }
+
+    .netease-playlists-container .close-modal {
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 24px;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+    }
+
+    .netease-playlists-container .close-modal:hover {
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .netease-playlists-container .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex-grow: 1;
+        max-height: calc(90vh - 70px);
+    }
+
+    /* 手机模式下的弹窗调整，避免被播放器挡住 */
+    @media (max-width: 768px) {
+        .netease-playlists-container .modal-content {
+            /* 减少最大高度，确保底部不被播放器挡住 */
+            max-height: calc(100vh - var(--player-height, 90px) - 20px);
+        }
+        
+        .netease-playlists-container .modal-body {
+            /* 相应调整内容区域的最大高度 */
+            max-height: calc(100vh - var(--player-height, 90px) - 90px);
+        }
+    }
+
+    /* 隐藏模态框主体的滚动条，但保持滚动功能 */
+    .netease-playlists-container .modal-body::-webkit-scrollbar {
+        width: 0;
+        background: transparent;
+    }
+
+    .netease-playlists-container .playlist-detail {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .netease-playlists-container .playlist-detail {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    .netease-playlists-container .detail-cover {
+        flex-shrink: 0;
+        width: 200px;
+        height: 200px;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .netease-playlists-container .detail-info {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .netease-playlists-container .detail-info h2 {
+        font-size: 24px;
+        margin: 0 0 12px 0;
+        color: #fff;
+    }
+
+    .netease-playlists-container .detail-info p {
+        margin: 8px 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+    }
+
+    .netease-playlists-container .detail-info strong {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .netease-playlists-container #song-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .netease-playlists-container .song-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .netease-playlists-container .song-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .netease-playlists-container .song-item.playing {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .netease-playlists-container .song-item.play-error {
+        background-color: rgba(255, 77, 79, 0.1);
+    }
+
+    .netease-playlists-container .song-index {
+        width: 32px;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 14px;
+        margin-right: 16px;
+        text-align: right;
+    }
+
+    .netease-playlists-container .song-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .netease-playlists-container .song-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #fff;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .netease-playlists-container .song-artist {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .netease-playlists-container .song-duration {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-left: 16px;
+    }
+</style>

@@ -217,7 +217,7 @@ def log_request_details(logger, request, level, message, **kwargs):
 # 公开页面列表（无需登录即可访问）
 PUBLIC_PAGES: List[str] = ['discover', 'rank', 'doc-163', 'about']
 # 受保护页面列表（需要登录才能访问）
-PROTECTED_PAGES: List[str] = ['history', 'playlist_detail']
+PROTECTED_PAGES: List[str] = ['history', 'playlist_detail', 'netease_playlists']
 # 所有允许访问的页面
 ALLOWED_PAGES: List[str] = PUBLIC_PAGES + PROTECTED_PAGES
 # 允许访问的部分页面（与主页面列表保持一致）
@@ -479,7 +479,7 @@ def _register_routes(app: Flask) -> None:
         if page_name in PROTECTED_PAGES and 'user_id' not in session:
             log_request_details(app.logger, request, 'info', 
                                f"未登录用户尝试访问受保护页面: {page_name}，已重定向至登录页")
-            return redirect(url_for('index', page_name='login'))
+            return redirect("/")
         
         # 记录正常页面访问
         user_status = f"已登录(用户ID:{session.get('user_id')})" if 'user_id' in session else "未登录"

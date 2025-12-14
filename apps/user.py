@@ -17,19 +17,7 @@ def login_required(f):
     return decorated_function
 
 
-# 管理员权限验证装饰器
-def admin_required(f):
-    """
-    管理员权限验证装饰器
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'message': '请先登录'}), 401
-        if not session.get('is_admin'):
-            return jsonify({'message': '需要管理员权限'}), 403
-        return f(*args, **kwargs)
-    return decorated_function
+
 
 # 注册蓝图
 user = Blueprint('user', __name__, url_prefix='/user')
@@ -37,22 +25,9 @@ user = Blueprint('user', __name__, url_prefix='/user')
 # 用户输入验证函数（增强防注入）
 def validate_user_input(username, password, confirm_password=None):
     """验证用户输入"""
-    # 如果用户名和密码都为空，返回错误
+    # 用户名和密码不能同时为空
     if not username and not password:
-        return '用户名和密码不能为空'
-    
-    # 如果只传入了用户名，则只验证用户名
-    if username and not password:
-        pass  # 跳过密码验证
-    
-    # 如果只传入了密码，则只验证密码
-    elif not username and password:
-        pass  # 跳过用户名验证
-    
-    # 如果两者都传入了，则都验证
-    else:
-        if not username or not password:
-            return '用户名和密码不能为空'
+        return '用户名和密码不能同时为空'
 
     # 验证用户名（如果提供了）
     if username:
@@ -76,13 +51,22 @@ def validate_user_input(username, password, confirm_password=None):
 # 登录接口
 @user.route('/login', methods=['POST'])
 def login():
-    # 统一获取用户名和密码
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '').strip()
+    # 统一获取用户名和密码，同时支持JSON和表单格式
+    if request.is_json:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+    else:
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+
+    # 记录收到的表单数据
+    current_app.logger.info(f"登录请求 - 用户名: '{username}', 密码长度: {len(password)}")
 
     # 使用统一验证函数
     error = validate_user_input(username, password)
     if error:
+        current_app.logger.info(f"登录验证失败 - 错误信息: {error}")
         return jsonify({'message': error}), 400
 
     # 密码加密处理
@@ -132,13 +116,20 @@ def login():
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
 
+# 管理员登录接口
 # 注册接口
 @user.route('/register', methods=['POST'])
 def register():
-    # 获取注册信息
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '').strip()
-    confirm_password = request.form.get('confirm_password', '').strip()
+    # 统一获取注册信息，同时支持JSON和表单格式
+    if request.is_json:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+    else:
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
 
     # 使用统一验证函数
     error = validate_user_input(username, password, confirm_password)
@@ -714,8 +705,12 @@ def save_play_history():
         # 获取用户ID
         user_id = session.get('user_id')
         
-        # 获取歌曲ID
-        song_id = request.json.get('song_id')
+        # 统一获取歌曲ID，同时支持JSON和表单格式
+        if request.is_json:
+            data = request.get_json()
+            song_id = data.get('song_id')
+        else:
+            song_id = request.form.get('song_id')
         
         if not song_id:
             return jsonify({'message': '歌曲ID不能为空'}), 400
@@ -1171,294 +1166,3 @@ def get_user_info():
         current_app.logger.error(f"获取用户信息错误: {str(e)}")
         return jsonify({'message': '系统错误，请稍后重试'}), 500
 
-
-# 管理员接口：获取所有用户列表
-@user.route('/admin/users', methods=['GET'])
-@admin_required
-def get_all_users():
-    """
-    管理员获取所有用户列表
-    """
-    try:
-        with Mysql() as mysql:
-            select_sql = "SELECT id, username, netease_user_id, status, is_admin, create_time FROM user WHERE deleted = 0"
-            users = mysql.sql(select_sql)
-            return jsonify({
-                'message': '获取用户列表成功',
-                'data': users
-            }), 200
-    except Exception as e:
-        current_app.logger.error(f"获取用户列表错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：删除用户
-@user.route('/admin/users/<int:target_user_id>', methods=['DELETE'])
-@admin_required
-def delete_user(target_user_id):
-    """
-    管理员删除用户
-    """
-    try:
-        # 防止删除自己
-        current_user_id = session.get('user_id')
-        if current_user_id == target_user_id:
-            return jsonify({'message': '不能删除自己'}), 400
-            
-        with Mysql() as mysql:
-            # 检查用户是否存在
-            select_sql = f"SELECT id FROM user WHERE id = {target_user_id} AND deleted = 0"
-            user = mysql.sql(select_sql)
-            if not user:
-                return jsonify({'message': '用户不存在'}), 404
-            
-            # 逻辑删除用户
-            delete_sql = f"UPDATE user SET deleted = 1 WHERE id = {target_user_id}"
-            result = mysql.sql(delete_sql)
-            
-            # 删除用户的所有歌单
-            delete_playlists_sql = f"UPDATE playlist SET deleted = 1 WHERE user_id = {target_user_id}"
-            mysql.sql(delete_playlists_sql)
-            
-            return jsonify({'message': '删除用户成功'}), 200
-    except Exception as e:
-        current_app.logger.error(f"删除用户错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：封禁用户
-@user.route('/admin/users/<int:target_user_id>/ban', methods=['PUT'])
-@admin_required
-def ban_user(target_user_id):
-    """
-    管理员封禁用户
-    """
-    try:
-        # 防止封禁自己
-        current_user_id = session.get('user_id')
-        if current_user_id == target_user_id:
-            return jsonify({'message': '不能封禁自己'}), 400
-            
-        with Mysql() as mysql:
-            # 检查用户是否存在
-            select_sql = f"SELECT id FROM user WHERE id = {target_user_id} AND deleted = 0"
-            user = mysql.sql(select_sql)
-            if not user:
-                return jsonify({'message': '用户不存在'}), 404
-            
-            # 封禁用户
-            ban_sql = f"UPDATE user SET status = 0 WHERE id = {target_user_id}"
-            result = mysql.sql(ban_sql)
-            
-            return jsonify({'message': '封禁用户成功'}), 200
-    except Exception as e:
-        current_app.logger.error(f"封禁用户错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：解放用户
-@user.route('/admin/users/<int:target_user_id>/unban', methods=['PUT'])
-@admin_required
-def unban_user(target_user_id):
-    """
-    管理员解放用户
-    """
-    try:
-        with Mysql() as mysql:
-            # 检查用户是否存在
-            select_sql = f"SELECT id FROM user WHERE id = {target_user_id} AND deleted = 0"
-            user = mysql.sql(select_sql)
-            if not user:
-                return jsonify({'message': '用户不存在'}), 404
-            
-            # 解放用户
-            unban_sql = f"UPDATE user SET status = 1 WHERE id = {target_user_id}"
-            result = mysql.sql(unban_sql)
-            
-            return jsonify({'message': '解放用户成功'}), 200
-    except Exception as e:
-        current_app.logger.error(f"解放用户错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：设置用户为管理员
-@user.route('/admin/users/<int:target_user_id>/set_admin', methods=['PUT'])
-@admin_required
-def set_user_admin(target_user_id):
-    """
-    管理员设置用户为管理员
-    """
-    try:
-        with Mysql() as mysql:
-            # 检查用户是否存在
-            select_sql = f"SELECT id FROM user WHERE id = {target_user_id} AND deleted = 0"
-            user = mysql.sql(select_sql)
-            if not user:
-                return jsonify({'message': '用户不存在'}), 404
-            
-            # 设置为管理员
-            set_admin_sql = f"UPDATE user SET is_admin = 1 WHERE id = {target_user_id}"
-            result = mysql.sql(set_admin_sql)
-            
-            return jsonify({'message': '设置用户为管理员成功'}), 200
-    except Exception as e:
-        current_app.logger.error(f"设置用户为管理员错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：修改用户信息
-@user.route('/admin/users/<int:target_user_id>', methods=['PUT'])
-@admin_required
-def update_user_info(target_user_id):
-    """
-    管理员修改用户信息（用户名、密码、网易云ID）
-    """
-    try:
-        data = request.get_json() or {}
-        username = data.get('username')
-        password = data.get('password')
-        netease_user_id = data.get('netease_user_id')
-        
-        # 检查至少提供了一个需要修改的字段
-        if not any([username, password, netease_user_id]):
-            return jsonify({'message': '请至少提供一个需要修改的字段'}), 400
-        
-        with Mysql() as mysql:
-            # 检查用户是否存在
-            user = mysql.sql(f"SELECT id, username FROM user WHERE id = {target_user_id} AND deleted = 0")
-            if not user:
-                return jsonify({'message': '用户不存在'}), 404
-            
-            # 构建更新语句
-            update_fields = []
-            update_values = []
-            
-            if username:
-                username = username.strip()
-                if not username:
-                    return jsonify({'message': '用户名不能为空'}), 400
-                    
-                # 检查用户名是否已存在
-                existing_user = mysql.sql(
-                    "SELECT id FROM user WHERE username=%s AND deleted=0 AND status=0 AND id!=%s",
-                    [username, target_user_id]
-                )
-                if existing_user:
-                    return jsonify({'message': '用户名已存在'}), 400
-                    
-                update_fields.append("username = %s")
-                update_values.append(username)
-            
-            if password:
-                password = password.strip()
-                if not password:
-                    return jsonify({'message': '密码不能为空'}), 400
-                    
-                # 验证密码格式
-                error = validate_user_input('', password)
-                if error:
-                    return jsonify({'message': error}), 400
-                    
-                # 对密码进行哈希处理
-                hashed_password = hashlib.sha256(password.encode()).hexdigest()
-                update_fields.append("password = %s")
-                update_values.append(hashed_password)
-            
-            if netease_user_id is not None:
-                if netease_user_id == "":
-                    # 允许清空网易云ID
-                    update_fields.append("netease_user_id = NULL")
-                else:
-                    update_fields.append("netease_user_id = %s")
-                    update_values.append(netease_user_id)
-            
-            if update_fields:
-                # 添加更新时间
-                update_fields.append("update_time = CURRENT_TIMESTAMP")
-                
-                # 构建完整的更新SQL
-                update_sql = "UPDATE user SET " + ", ".join(update_fields) + " WHERE id = %s"
-                update_values.append(target_user_id)
-                
-                # 执行更新
-                mysql.sql(update_sql, update_values)
-                
-                current_app.logger.info(f"管理员修改用户信息成功: 用户ID {target_user_id}")
-                return jsonify({'message': '修改用户信息成功'}), 200
-            else:
-                return jsonify({'message': '没有可更新的字段'}), 400
-                
-    except Exception as e:
-        current_app.logger.error(f"管理员修改用户信息错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：获取所有歌单
-@user.route('/admin/playlists', methods=['GET'])
-@admin_required
-def get_all_playlists():
-    """
-    管理员获取所有歌单
-    """
-    try:
-        with Mysql() as mysql:
-            # 查询所有未被删除的歌单，包含创建者用户名
-            playlists = mysql.sql(
-                '''SELECT p.id, p.user_id, u.username, p.name, p.cover_url, p.description, p.create_time, p.update_time,
-                       COUNT(ps.song_id) as song_count
-                FROM playlist p
-                LEFT JOIN user u ON p.user_id = u.id
-                LEFT JOIN playlist_song ps ON p.id = ps.playlist_id
-                WHERE p.deleted=0
-                GROUP BY p.id
-                ORDER BY p.create_time DESC'''
-            )
-            
-            current_app.logger.info(f"管理员获取所有歌单成功，共 {len(playlists)} 个歌单")
-            return jsonify({
-                'playlists': playlists,
-                'total': len(playlists)
-            }), 200
-            
-    except Exception as e:
-        current_app.logger.error(f"管理员获取所有歌单错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500
-
-
-# 管理员接口：根据用户ID获取歌单
-@user.route('/admin/users/<int:user_id>/playlists', methods=['GET'])
-@admin_required
-def get_user_playlists(user_id):
-    """
-    管理员根据用户ID获取歌单
-    """
-    try:
-        with Mysql() as mysql:
-            # 检查用户是否存在
-            user = mysql.sql(f"SELECT id, username FROM user WHERE id = {user_id} AND deleted = 0")
-            if not user:
-                return jsonify({'message': '用户不存在'}), 404
-            
-            # 查询该用户的所有未被删除的歌单
-            playlists = mysql.sql(
-                '''SELECT p.id, p.user_id, u.username, p.name, p.cover_url, p.description, p.create_time, p.update_time,
-                       COUNT(ps.song_id) as song_count
-                FROM playlist p
-                LEFT JOIN user u ON p.user_id = u.id
-                LEFT JOIN playlist_song ps ON p.id = ps.playlist_id
-                WHERE p.user_id = %s AND p.deleted=0
-                GROUP BY p.id
-                ORDER BY p.create_time DESC''',
-                [user_id]
-            )
-            
-            current_app.logger.info(f"管理员获取用户 {user_id} 的歌单成功，共 {len(playlists)} 个歌单")
-            return jsonify({
-                'user': user[0],
-                'playlists': playlists,
-                'total': len(playlists)
-            }), 200
-            
-    except Exception as e:
-        current_app.logger.error(f"管理员获取用户歌单错误: {str(e)}")
-        return jsonify({'message': '系统错误，请稍后重试'}), 500

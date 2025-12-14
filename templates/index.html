@@ -70,7 +70,68 @@
                 </div>
                 <div class="user-profile">
                     {% if session.get('username') %}
-                        <span class="user-name"><a href="/user/edit_profile">{{ session.get('username') }}</a></span>
+                        <span class="user-name"><a href="javascript:void(0);" onclick="openProfileModal();">{{ session.get('username') }}</a></span>
+                        
+                        <script>
+                        function openProfileModal() {
+                            // 创建模态对话框容器
+                            var modal = document.createElement('div');
+                            modal.style.position = 'fixed';
+                            modal.style.top = '0';
+                            modal.style.left = '0';
+                            modal.style.width = '100%';
+                            modal.style.height = '100%';
+                            modal.style.backgroundColor = 'white';
+                            modal.style.zIndex = '9999';
+                            modal.style.overflow = 'auto';
+                            
+                            // 创建关闭按钮
+                            var closeBtn = document.createElement('button');
+                            closeBtn.innerHTML = '×';
+                            closeBtn.style.position = 'absolute';
+                            closeBtn.style.top = '15px';
+                            closeBtn.style.right = '15px';
+                            closeBtn.style.fontSize = '24px';
+                            closeBtn.style.width = '36px';
+                            closeBtn.style.height = '36px';
+                            closeBtn.style.borderRadius = '50%';
+                            closeBtn.style.background = 'rgba(0,0,0,0.1)';
+                            closeBtn.style.color = '#333';
+                            closeBtn.style.border = '1px solid rgba(0,0,0,0.1)';
+                            closeBtn.style.cursor = 'pointer';
+                            closeBtn.style.display = 'flex';
+                            closeBtn.style.alignItems = 'center';
+                            closeBtn.style.justifyContent = 'center';
+                            closeBtn.style.fontWeight = 'bold';
+                            closeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12)';
+                            closeBtn.style.transition = 'all 0.2s ease';
+                            closeBtn.onmouseover = function() {
+                                closeBtn.style.background = '#f5f5f5';
+                                closeBtn.style.transform = 'translateY(-1px)';
+                                closeBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.15)';
+                            };
+                            closeBtn.onmouseout = function() {
+                                closeBtn.style.background = 'rgba(0,0,0,0.1)';
+                                closeBtn.style.transform = 'translateY(0)';
+                                closeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12)';
+                            };
+                            closeBtn.onclick = function() {
+                                document.body.removeChild(modal);
+                            };
+                            modal.appendChild(closeBtn);
+                            
+                            // 创建iframe显示编辑页面
+                            var iframe = document.createElement('iframe');
+                            iframe.src = '/user/edit_profile';
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100%';
+                            iframe.style.border = 'none';
+                            modal.appendChild(iframe);
+                            
+                            // 添加到页面
+                            document.body.appendChild(modal);
+                        }
+                        </script>
                         <!-- 待优化 -->
                         <a href="/user/logout" class="btn btn-logout">退出</a>
                     {% else %}

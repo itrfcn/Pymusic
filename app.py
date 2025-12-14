@@ -12,7 +12,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from config import current_config
 from apps.music import music  # 音乐模块蓝图
 from apps.user import user  # 用户模块蓝图
+from apps.admin import admin_bp  # 管理模块蓝图
 from apps.clean_history_data import register_cleanup_hook  # 历史数据清理钩子
+
+# 导入CORS支持
+from flask_cors import CORS
 
 
 # ======================== 防护扫描机制 ========================
@@ -305,10 +309,17 @@ def create_app(config_name=None) -> Flask:
         blueprint_request_logger('music')
         # 为user模块添加日志中间件
         blueprint_request_logger('user')
+        # 为admin模块添加日志中间件
+        blueprint_request_logger('admin')
+        
+        # 配置CORS，允许来自localhost:3006的跨域请求
+        CORS(app, origins=['http://localhost:3006'], supports_credentials=True)
+        app.logger.info("CORS配置完成")
         
         # 注册蓝图
         app.register_blueprint(music, url_prefix='/music')  # 音乐相关API路由
         app.register_blueprint(user, url_prefix='/user')    # 用户相关API路由
+        app.register_blueprint(admin_bp, url_prefix='/admin')  # 管理相关API路由
         app.logger.info("蓝图注册完成并添加日志中间件")
     except Exception as e:
         app.logger.error("蓝图注册失败", exc_info=True)

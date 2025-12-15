@@ -32,12 +32,6 @@ class Mysql:
         count = rowid = None
         cursor = self.db.cursor()
         try:
-            # 修正：对于insert语句也使用execute，executemany用于批量插入
-            # if sql.startswith("insert") and isinstance(param, tuple):
-            #     count = cursor.executemany(sql, param)
-            # else:
-            #     count = cursor.execute(sql, param)
-            
             # 统一使用execute执行单条SQL语句
             count = cursor.execute(sql, param)
             self.db.commit()

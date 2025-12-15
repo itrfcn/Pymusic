@@ -204,15 +204,15 @@ def create_playlist():
             return jsonify({'message': '用户未登录'}), 401
         
         # 添加详细日志记录接收到的数据
-        current_app.logger.info(f"接收到的请求头: {dict(request.headers)}")
-        current_app.logger.info(f"是否有JSON数据: {request.is_json}")
-        current_app.logger.info(f"表单数据: {dict(request.form)}")
-        current_app.logger.info(f"文件数据: {list(request.files.keys())}")
+        # current_app.logger.info(f"接收到的请求头: {dict(request.headers)}")
+        # current_app.logger.info(f"是否有JSON数据: {request.is_json}")
+        # current_app.logger.info(f"表单数据: {dict(request.form)}")
+        # current_app.logger.info(f"文件数据: {list(request.files.keys())}")
         
         # 尝试获取JSON数据，如果没有则尝试从表单获取
         data = request.json or {}
         if not data:
-            current_app.logger.info("未获取到JSON数据，尝试从表单获取")
+            # current_app.logger.info("未获取到JSON数据，尝试从表单获取")
             data = dict(request.form)
         
         # 获取参数并验证
@@ -221,14 +221,14 @@ def create_playlist():
         if not isinstance(name, str):
             name = str(name)
         name = name.strip()
-        current_app.logger.info(f"获取到的歌单名称: {name}")
+        # current_app.logger.info(f"获取到的歌单名称: {name}")
         
         if not name:
-            current_app.logger.warning("歌单名称为空")
+            # current_app.logger.warning("歌单名称为空")
             return jsonify({'message': '歌单名称不能为空'}), 400
         
         if len(name) > 100:
-            current_app.logger.warning(f"歌单名称过长: {name}")
+            # current_app.logger.warning(f"歌单名称过长: {name}")
             return jsonify({'message': '歌单名称长度不能超过100个字符'}), 400
         
         # 获取cover_url，不再限制长度（数据库已修改为TEXT类型）
@@ -236,13 +236,13 @@ def create_playlist():
         # 确保cover_url是字符串类型
         if not isinstance(cover_url, str):
             cover_url = str(cover_url)
-        current_app.logger.info(f"获取到的封面URL长度: {len(cover_url)}, 前100字符: {cover_url[:100]}...")
+        # current_app.logger.info(f"获取到的封面URL长度: {len(cover_url)}, 前100字符: {cover_url[:100]}...")
         
         description = data.get('description', '')
         # 确保description是字符串类型
         if not isinstance(description, str):
             description = str(description)
-        current_app.logger.info(f"获取到的描述: {description}")
+        # current_app.logger.info(f"获取到的描述: {description}")
         
         # 创建歌单
         with Mysql() as mysql:

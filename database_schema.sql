@@ -34,7 +34,7 @@ CREATE INDEX idx_user_id
 CREATE INDEX idx_user_time
     ON play_history (user_id ASC, play_time DESC);
 
--- 播放列表表
+-- 歌单表
 CREATE TABLE playlist (
     id          INT AUTO_INCREMENT
         PRIMARY KEY,
@@ -45,8 +45,7 @@ CREATE TABLE playlist (
     deleted     TINYINT(1) DEFAULT 0                NOT NULL,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT unique_user_playlist
-        UNIQUE (user_id, name),
+    INDEX idx_user_name_deleted (user_id, name, deleted),
     CONSTRAINT playlist_ibfk_1
         FOREIGN KEY (user_id) REFERENCES user (id)
 );
@@ -54,7 +53,7 @@ CREATE TABLE playlist (
 CREATE INDEX idx_playlist_user_id
     ON playlist (user_id);
 
--- 播放列表歌曲表
+-- 歌单歌曲表
 CREATE TABLE playlist_song (
     id          INT AUTO_INCREMENT
         PRIMARY KEY,

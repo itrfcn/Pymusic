@@ -154,7 +154,7 @@ def register():
                 [username, hashed_password]
             )
 
-            if isinstance(result, tuple) and result[0] > 0:
+            if isinstance(result, tuple) and result[0] is not None and result[0] > 0:
                 return jsonify({'message': '注册成功，请登录'}), 200
             else:
                 return jsonify({'message': '注册失败，请重试'}), 500
@@ -251,7 +251,7 @@ def create_playlist():
             current_app.logger.info(f"插入结果: {result}, 类型: {type(result)}")
             
             # 检查是否成功插入（影响行数>0）
-            if isinstance(result, tuple) and len(result) >= 1 and result[0] > 0:
+            if isinstance(result, tuple) and len(result) >= 1 and result[0] is not None and result[0] > 0:
                 # 使用mysql工具类返回的rowid作为歌单ID
                 playlist_id = result[1] if len(result) > 1 and result[1] is not None else None
                 
@@ -480,7 +480,7 @@ def add_song_to_playlist(playlist_id):
                 [playlist_id, song_id]
             )
             
-            if isinstance(result, tuple) and result[0] > 0:
+            if isinstance(result, tuple) and result[0] is not None and result[0] > 0:
                 # 更新歌单的更新时间
                 mysql.sql(
                     "UPDATE playlist SET update_time = CURRENT_TIMESTAMP WHERE id = %s",
@@ -628,7 +628,7 @@ def update_playlist(playlist_id):
             result = mysql.sql(sql, params)
             
             # Mysql.sql方法执行update时返回元组(count, rowid)
-            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] is not None and result[0] > 0:
                 current_app.logger.info(f"用户 {user_id} 更新歌单 {playlist_id} 信息成功")
                 return jsonify({'message': '歌单信息更新成功'}), 200
             else:
@@ -684,7 +684,7 @@ def delete_playlist(playlist_id):
                 )
             
             # 检查删除是否成功
-            if isinstance(playlist_delete_result, tuple) and len(playlist_delete_result) > 0 and playlist_delete_result[0] > 0:
+            if isinstance(playlist_delete_result, tuple) and len(playlist_delete_result) > 0 and playlist_delete_result[0] is not None and playlist_delete_result[0] > 0:
                 current_app.logger.info(f"用户 {user_id} 删除歌单成功: ID {playlist_id}, 名称 '{playlist_name}'")
                 return jsonify({'message': '歌单删除成功'}), 200
             else:
@@ -732,7 +732,7 @@ def save_play_history():
                 [user_id, song_id]
             )
             
-            if isinstance(existing_record, list) and existing_record:
+            if existing_record is not None and isinstance(existing_record, list) and existing_record:
                 # 记录已存在，更新播放时间
                 result = mysql.sql(
                     "UPDATE play_history SET play_time=CURRENT_TIMESTAMP WHERE user_id=%s AND song_id=%s",
@@ -752,7 +752,7 @@ def save_play_history():
                 return jsonify({'message': '播放历史保存失败'}), 500
             
             # 检查操作是否成功
-            if (isinstance(result, tuple) and result[0] and result[0] > 0) or \
+            if (isinstance(result, tuple) and result[0] is not None and result[0] > 0) or \
                (isinstance(result, int) and result > 0):
                 current_app.logger.info(f"用户 {user_id} 播放历史{action}成功: 歌曲ID {song_id}")
                 return jsonify({'message': '播放历史保存成功'}), 200
@@ -805,9 +805,10 @@ def get_play_history():
             
             # 去重处理，保留最新的播放记录
             unique_songs = {}
-            for record in history_list:
-                if record['song_id'] not in unique_songs:
-                    unique_songs[record['song_id']] = record
+            if history_list is not None:
+                for record in history_list:
+                    if record['song_id'] not in unique_songs:
+                        unique_songs[record['song_id']] = record
             
             # 转换为列表
             unique_history = list(unique_songs.values())
@@ -939,7 +940,7 @@ def update_username():
                 [new_username, user_id]
             )
             
-            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] is not None and result[0] > 0:
                 # 更新会话中的用户名
                 session['username'] = new_username
                 current_app.logger.info(f"用户 {user_id} 修改用户名成功: {new_username}")
@@ -997,7 +998,7 @@ def update_password():
                 [hashed_new_password, user_id]
             )
             
-            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] is not None and result[0] > 0:
                 current_app.logger.info(f"用户 {user_id} 修改密码成功")
                 return jsonify({'message': '密码修改成功'}), 200
             else:
@@ -1069,7 +1070,7 @@ def update_account_info():
                 [new_username, hashed_new_password, user_id]
             )
             
-            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] is not None and result[0] > 0:
                 # 更新会话中的用户名
                 session['username'] = new_username
                 current_app.logger.info(f"用户 {user_id} 同时修改用户名和密码成功: {new_username}")
@@ -1121,7 +1122,7 @@ def update_netease_user_id():
             )
             
             # 检查更新是否成功，Mysql.update返回 (count, rowid)
-            if isinstance(result, tuple) and len(result) > 0 and result[0] > 0:
+            if isinstance(result, tuple) and len(result) > 0 and result[0] is not None and result[0] > 0:
                 # 同步更新session中的netease_user_id
                 session['netease_user_id'] = netease_user_id_value
                 current_app.logger.info(f"用户 {user_id} 修改网易云用户ID成功: {netease_user_id_value}")

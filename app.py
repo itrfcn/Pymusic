@@ -13,6 +13,7 @@ from config import current_config
 from apps.music import music  # 音乐模块蓝图
 from apps.user import user  # 用户模块蓝图
 from apps.admin import admin_bp  # 管理模块蓝图
+from apps.analytics import analytics_bp  # 数据分析模块蓝图
 from apps.clean_history_data import register_cleanup_hook  # 历史数据清理钩子
 
 # 导入CORS支持
@@ -320,6 +321,7 @@ def create_app(config_name=None) -> Flask:
         app.register_blueprint(music, url_prefix='/music')  # 音乐相关API路由
         app.register_blueprint(user, url_prefix='/user')    # 用户相关API路由
         app.register_blueprint(admin_bp, url_prefix='/admin')  # 管理相关API路由
+        app.register_blueprint(analytics_bp, url_prefix='/analytics')  # 数据分析相关API路由
         app.logger.info("蓝图注册完成并添加日志中间件")
     except Exception as e:
         app.logger.error("蓝图注册失败", exc_info=True)
@@ -656,12 +658,22 @@ def configure_logging(app: Flask) -> None:
         ))
         console_handler.setLevel(logging.DEBUG)
         app.logger.addHandler(console_handler)
-        app.logger.setLevel(logging.DEBUG)
         
-        app.logger.info("【开发环境】日志系统已配置完成 - 调试模式")
-        return
+        # 设置日志级别为DEBUG
+        app.logger.setLevel(logging.DEBUG)
+    else:
+        # 生产环境控制台日志配置（容器环境友好，日志级别可配置）
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(
+            '%(asctime)s [%(levelname)s] %(message)s'
+        ))
+        console_handler.setLevel(numeric_level)
+        app.logger.addHandler(console_handler)
+        
+        # 设置日志级别为配置的级别
+        app.logger.setLevel(numeric_level)
     
-    # 5. 生产环境配置
+    # 5. 文件日志配置（开发和生产环境都使用）
     try:
         # 5.1 创建日志目录
         log_dir = os.path.dirname(log_file)
@@ -682,19 +694,8 @@ def configure_logging(app: Flask) -> None:
         ))
         file_handler.setLevel(numeric_level)
         
-        # 5.3 控制台日志处理器配置（容器环境友好，日志级别可配置）
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter(
-            '%(asctime)s [%(levelname)s] %(message)s'
-        ))
-        console_handler.setLevel(numeric_level)
-        
-        # 5.4 注册日志处理器
+        # 5.3 注册文件日志处理器
         app.logger.addHandler(file_handler)
-        app.logger.addHandler(console_handler)
-        
-        # 5.5 设置日志级别
-        app.logger.setLevel(numeric_level)
         
         # 5.6 记录启动信息 - 更详细的环境信息
         app.logger.info(

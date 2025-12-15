@@ -985,6 +985,11 @@ def remove_admin(user_id):
 def get_all_playlists():
     """
     管理员获取所有歌单（分页查询）
+    参数：
+        current: 当前页码，默认1
+        size: 每页数量，默认10
+        name: 歌单名称模糊查询
+        user_id: 创建人ID精确查询
     """
     try:
         # 获取分页参数
@@ -993,7 +998,7 @@ def get_all_playlists():
         
         # 获取查询参数
         name = request.args.get('name')
-        creator_name = request.args.get('creator_name')
+        user_id = request.args.get('user_id', type=int)
         
         # 计算偏移量
         offset = (current - 1) * size
@@ -1007,16 +1012,16 @@ def get_all_playlists():
                 conditions.append("p.name LIKE %s")
                 params.append(f"%{name}%")
             
-            if creator_name:
-                conditions.append("u.username LIKE %s")
-                params.append(f"%{creator_name}%")
+            if user_id:
+                conditions.append("p.user_id = %s")
+                params.append(user_id)
             
             # 添加分页参数
             params.extend([size, offset])
             
             # 查询当前页数据
             playlists = mysql.sql(
-                f'''SELECT p.id, p.user_id, u.username, p.name, p.cover_url, p.description, p.create_time, p.update_time,
+                f'''SELECT p.id as playlist_id, p.user_id as id, u.username, p.name, p.cover_url, p.description, p.create_time, p.update_time,
                        COUNT(ps.song_id) as song_count
                 FROM playlist p
                 LEFT JOIN user u ON p.user_id = u.id
@@ -1039,7 +1044,7 @@ def get_all_playlists():
             # 计算总页数
             total_pages = (total_count + size - 1) // size
             
-            current_app.logger.info(f"管理员获取所有歌单成功，当前页 {current}，每页 {size} 条，共 {total_count} 个歌单")
+            current_app.logger.info(f"管理员获取所有歌单成功: 用户ID {session.get('user_id')}，当前页 {current}，每页 {size} 条，共 {total_count} 个歌单")
             return jsonify({
                 'code': 200,
                 'msg': '获取所有歌单成功',

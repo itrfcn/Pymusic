@@ -199,6 +199,10 @@ def create_playlist():
     try:
         user_id = session.get('user_id')
         
+        # 检查用户是否已登录（虽然有@login_required装饰器，但为了安全起见再次检查）
+        if user_id is None:
+            return jsonify({'message': '用户未登录'}), 401
+        
         # 添加详细日志记录接收到的数据
         current_app.logger.info(f"接收到的请求头: {dict(request.headers)}")
         current_app.logger.info(f"是否有JSON数据: {request.is_json}")
@@ -212,7 +216,11 @@ def create_playlist():
             data = dict(request.form)
         
         # 获取参数并验证
-        name = data.get('name', '').strip()
+        name = data.get('name', '')
+        # 确保name是字符串类型
+        if not isinstance(name, str):
+            name = str(name)
+        name = name.strip()
         current_app.logger.info(f"获取到的歌单名称: {name}")
         
         if not name:
@@ -225,9 +233,15 @@ def create_playlist():
         
         # 获取cover_url，不再限制长度（数据库已修改为TEXT类型）
         cover_url = data.get('cover_url', '')
+        # 确保cover_url是字符串类型
+        if not isinstance(cover_url, str):
+            cover_url = str(cover_url)
         current_app.logger.info(f"获取到的封面URL长度: {len(cover_url)}, 前100字符: {cover_url[:100]}...")
         
         description = data.get('description', '')
+        # 确保description是字符串类型
+        if not isinstance(description, str):
+            description = str(description)
         current_app.logger.info(f"获取到的描述: {description}")
         
         # 创建歌单
@@ -238,7 +252,7 @@ def create_playlist():
                 [user_id, name]
             )
             
-            if isinstance(existing, list) and existing:
+            if existing is not None and isinstance(existing, list) and existing:
                 return jsonify({'message': '歌单名称已存在'}), 400
             
             # 插入新歌单
@@ -251,7 +265,7 @@ def create_playlist():
             current_app.logger.info(f"插入结果: {result}, 类型: {type(result)}")
             
             # 检查是否成功插入（影响行数>0）
-            if isinstance(result, tuple) and len(result) >= 1 and result[0] is not None and result[0] > 0:
+            if result is not None and isinstance(result, tuple) and len(result) >= 1 and result[0] is not None and result[0] > 0:
                 # 使用mysql工具类返回的rowid作为歌单ID
                 playlist_id = result[1] if len(result) > 1 and result[1] is not None else None
                 

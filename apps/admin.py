@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app, session
+from flask import Blueprint, request, jsonify, current_app, session, render_template
 from werkzeug.security import check_password_hash
 from functools import wraps
 from apps.tool.Mysql import Mysql
@@ -6,6 +6,14 @@ import hashlib
 
 # 创建admin蓝图
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+# 管理页面路由
+@admin_bp.route('/')
+def admin_index():
+    """
+    渲染管理页面
+    """
+    return render_template('admin/index.html')
 
 # 管理员权限装饰器
 def admin_required(func):

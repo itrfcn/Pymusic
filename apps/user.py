@@ -557,7 +557,9 @@ def remove_song_from_playlist(playlist_id, song_id):
                 [playlist_id, song_id]
             )
             
-            if isinstance(result, int) and result > 0:
+            # 处理返回值：如果是元组（来自update方法），取第一个元素作为受影响的行数
+            affected_rows = result[0] if isinstance(result, tuple) else result
+            if affected_rows > 0:
                 # 更新歌单的更新时间
                 mysql.sql(
                     "UPDATE playlist SET update_time = CURRENT_TIMESTAMP WHERE id = %s",

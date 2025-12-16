@@ -1515,6 +1515,18 @@ th {
     vertical-align: middle;
 }
 
+/* 侧边栏歌单名称样式 - 显示两行 */
+#user-playlists .playlist-name {
+    max-width: 80px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
 /* 表单样式 */
 .form-group {
     margin-bottom: var(--spacing-lg);

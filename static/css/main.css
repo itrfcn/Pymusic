@@ -628,7 +628,7 @@ img {
 /* 歌词面板居中显示 */
 .lyrics-panel {
     position: fixed;
-    left: 50%;
+    left: 53%;
     bottom: 90px;
     transform: translateX(-50%);
     width: min(720px, 70%);

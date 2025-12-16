@@ -997,7 +997,7 @@ def get_all_playlists():
         current: 当前页码，默认1
         size: 每页数量，默认10
         name: 歌单名称模糊查询
-        user_id: 创建人ID精确查询
+        username: 创建人名称模糊查询
     """
     try:
         # 获取分页参数
@@ -1006,7 +1006,7 @@ def get_all_playlists():
         
         # 获取查询参数
         name = request.args.get('name')
-        user_id = request.args.get('user_id', type=int)
+        username = request.args.get('username')
         
         # 计算偏移量
         offset = (current - 1) * size
@@ -1020,9 +1020,9 @@ def get_all_playlists():
                 conditions.append("p.name LIKE %s")
                 params.append(f"%{name}%")
             
-            if user_id:
-                conditions.append("p.user_id = %s")
-                params.append(user_id)
+            if username:
+                conditions.append("u.username LIKE %s")
+                params.append(f"%{username}%")
             
             # 添加分页参数
             params.extend([size, offset])

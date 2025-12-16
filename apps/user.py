@@ -602,8 +602,8 @@ def update_playlist(playlist_id):
             name = name.strip()
             if not name:
                 return jsonify({'message': '歌单名称不能为空'}), 400
-            if len(name) > 100:
-                return jsonify({'message': '歌单名称长度不能超过100个字符'}), 400
+            if len(name) > 50:
+                return jsonify({'message': '歌单名称长度不能超过50个字符'}), 400
         
         # 验证封面URL
         if cover_url is not None:

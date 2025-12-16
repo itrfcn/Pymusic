@@ -1,1 +1,0 @@
-import{c4 as r,c5 as a,U as e,Z as o,u as s}from"./index-DtLPO4VG.js";const t={prefix:Math.floor(1e4*Math.random()),current:0},n=Symbol("elIdInjection"),c=()=>o()?e(n,t):t,i=e=>{const o=c(),t=r();return a(()=>s(e)||`${t.value}-id-${o.prefix}-${o.current++}`)};export{c as a,i as u};

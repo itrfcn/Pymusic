@@ -1,1 +1,0 @@
-import{b2 as a}from"./index-DtLPO4VG.js";const s=s=>a.get({url:"/analytics/user-growth",params:s}),t=s=>a.get({url:"/analytics/website-visits",params:s}),i=()=>a.get({url:"/analytics/visit-paths"}),r=()=>a.get({url:"/analytics/ip-locations"}),l=()=>a.get({url:"/analytics/dashboard"});export{t as a,i as b,r as c,l as d,s as f};

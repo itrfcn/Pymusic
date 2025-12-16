@@ -1219,8 +1219,6 @@ async function removeSongFromPlaylist(songId) {
             method: 'DELETE'
         });
         
-        // 即使返回500状态码，也要尝试从UI中移除歌曲行
-        // 因为根据测试，歌曲实际上已经从数据库中删除了
         let data = { message: '歌曲删除成功' };
         try {
             data = await response.json();

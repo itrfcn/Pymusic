@@ -45,6 +45,9 @@
                         <p>创建者: <span id="detail-creator"></span></p>
                         <p>播放量: <span id="detail-playcount"></span></p>
                         <p>歌曲数量: <span id="detail-songcount"></span></p>
+                        <button id="transfer-playlist-btn" class="btn btn-primary btn-transfer">
+                            <i class="fa-solid fa-copy"></i> 一键转存
+                        </button>
                     </div>
                 </div>
                 <h4>歌曲列表</h4>
@@ -275,6 +278,13 @@
                     modalElements.modal.classList.remove('active');
                 }
             });
+            
+            // 一键转存按钮事件 - 只添加一次
+            document.getElementById('transfer-playlist-btn').addEventListener('click', () => {
+                if (dataStore.currentPlaylist) {
+                    transferPlaylist(dataStore.currentPlaylist.id);
+                }
+            });
         }
 
         // 显示歌单详情
@@ -288,6 +298,9 @@
             // 查找歌单数据
             const playlist = dataStore.allPlaylists.find(p => p.id === playlistId);
             if (!playlist) return;
+            
+            // 保存当前歌单到数据存储
+            dataStore.currentPlaylist = playlist;
 
             // 更新弹窗基础信息
             modalElements.modalTitle.textContent = `歌单详情 - ${playlist.name}`;
@@ -493,8 +506,119 @@
                 });
             }
 
-            // 初始化弹窗功能
-            initModal();
+            // 初始化弹窗功能（只执行一次）
+            if (!window.modalInitialized) {
+                initModal();
+                window.modalInitialized = true;
+            }
+        }
+        
+        // 一键转存歌单函数
+        async function transferPlaylist(playlistId) {
+            try {
+                // 显示加载状态
+                const transferBtn = document.getElementById('transfer-playlist-btn');
+                const originalText = transferBtn.innerHTML;
+                transferBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 转存中...';
+                transferBtn.disabled = true;
+                
+                // 获取歌单详情
+                const response = await fetch(`/music/playlist/${playlistId}`);
+                const data = await response.json();
+                
+                if (!data.result && !data.playlist) {
+                    showToast('获取歌单详情失败', 'error');
+                    return;
+                }
+                
+                const playlist = data.result || data.playlist;
+                
+                // 创建同名同描述的歌单
+                const createResponse = await fetch('/user/create_playlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: playlist.name,
+                        cover_url: playlist.coverImgUrl,
+                        description: playlist.description || ''
+                    })
+                });
+                
+                const createResult = await createResponse.json();
+                
+                if (!createResult.playlist_id) {
+                    showToast('创建歌单失败: ' + (createResult.message || '未知错误'), 'error');
+                    return;
+                }
+                
+                const newPlaylistId = createResult.playlist_id;
+                
+                // 获取所有歌曲ID
+                const tracks = playlist.tracks || playlist['t-tracks'] || [];
+                const songIds = tracks.map(track => track.id);
+                
+                // 批量添加歌曲到歌单
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const songId of songIds) {
+                    try {
+                        const addResponse = await fetch(`/user/playlist/${newPlaylistId}/add_song`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                song_id: songId
+                            })
+                        });
+                        
+                        const addResult = await addResponse.json();
+                        
+                        if (addResponse.ok && addResult.message === '歌曲添加成功') {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.warn(`添加歌曲 ${songId} 失败: ${addResult.message || '未知错误'}`);
+                        }
+                    } catch (error) {
+                        failCount++;
+                        console.error(`添加歌曲 ${songId} 时发生错误:`, error);
+                    }
+                }
+                
+                // 在控制台输出添加结果
+                console.log(`歌曲添加完成: 成功 ${successCount} 首，失败 ${failCount} 首`);
+                
+                // 显示成功消息
+                showToast('歌单转存成功!', 'success');
+                
+                // 刷新用户歌单列表和侧边栏歌单信息
+                if (typeof loadUserPlaylists === 'function') {
+                    console.log('调用loadUserPlaylists()函数刷新侧边栏');
+                    loadUserPlaylists();
+                } else if (typeof window.updateSidebarPlaylist === 'function') {
+                    console.log('调用window.updateSidebarPlaylist()函数刷新侧边栏');
+                    window.updateSidebarPlaylist();
+                } else {
+                    console.log('无法找到刷新侧边栏的函数，将刷新整个页面');
+                    // 如果无法找到刷新函数，刷新整个页面
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('转存歌单失败:', error);
+                showToast('转存歌单失败: ' + error.message, 'error');
+            } finally {
+                // 恢复按钮状态
+                const transferBtn = document.getElementById('transfer-playlist-btn');
+                transferBtn.innerHTML = '<i class="fa-solid fa-copy"></i> 一键转存';
+                transferBtn.disabled = false;
+            }
         }
     });
 </script>
@@ -857,12 +981,32 @@
     }
 
     .netease-playlists-container .detail-info p {
-        margin: 8px 0;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 14px;
-    }
+    margin: 8px 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
 
-    .netease-playlists-container .detail-info strong {
+.netease-playlists-container #transfer-playlist-btn {
+    margin-top: 15px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.netease-playlists-container #transfer-playlist-btn:hover {
+    background-color: #ff6700;
+    border-color: #ff6700;
+}
+
+.netease-playlists-container #transfer-playlist-btn:disabled {
+    background-color: #ccc;
+    border-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.netease-playlists-container .detail-info strong {
         color: rgba(255, 255, 255, 0.9);
     }
 
@@ -929,5 +1073,23 @@
         font-size: 14px;
         color: rgba(255, 255, 255, 0.4);
         margin-left: 16px;
+    }
+
+    /* 一键转存按钮样式 */
+    .netease-playlists-container .btn-transfer {
+        width: 140px;
+        max-width: 100%;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.5;
+        text-align: center;
+        margin-top: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .netease-playlists-container .btn-transfer:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(230, 0, 18, 0.3);
     }
 </style>

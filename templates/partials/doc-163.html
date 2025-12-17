@@ -960,6 +960,122 @@
         },
         
         /**
+         * 一键转存歌单：调用接口将歌单添加到用户账户
+         * @param {string} playlistId - 歌单ID
+         */
+        transferPlaylist: async function(playlistId) {
+            try {
+                // 显示加载状态
+                // 选择按钮容器中的第二个按钮（转存按钮）
+                const transferBtn = document.querySelector('.wy-music-parser .wy-playlist-header .play-all-button:nth-of-type(2)');
+                const originalText = transferBtn ? transferBtn.innerHTML : '';
+                if (transferBtn) {
+                    transferBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 转存中...';
+                    transferBtn.disabled = true;
+                }
+                
+                // 获取歌单详情
+                const response = await fetch(`/music/playlist/${playlistId}`);
+                const data = await response.json();
+                
+                if (!data.result && !data.playlist) {
+                    showToast('获取歌单详情失败', 'error');
+                    return;
+                }
+                
+                const playlist = data.result || data.playlist;
+                
+                // 创建同名同描述的歌单
+                const createResponse = await fetch('/user/create_playlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: playlist.name,
+                        cover_url: playlist.coverImgUrl,
+                        description: playlist.description || ''
+                    })
+                });
+                
+                const createResult = await createResponse.json();
+                
+                if (!createResult.playlist_id) {
+                    showToast('创建歌单失败: ' + (createResult.message || '未知错误'), 'error');
+                    return;
+                }
+                
+                const newPlaylistId = createResult.playlist_id;
+                
+                // 获取所有歌曲ID
+                const tracks = playlist.tracks || [];
+                const songIds = tracks.map(track => track.id).filter(Boolean);
+                
+                // 批量添加歌曲到歌单
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const songId of songIds) {
+                    try {
+                        const addResponse = await fetch(`/user/playlist/${newPlaylistId}/add_song`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                song_id: songId
+                            })
+                        });
+                        
+                        const addResult = await addResponse.json();
+                        
+                        if (addResponse.ok && addResult.message === '歌曲添加成功') {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.warn(`添加歌曲 ${songId} 失败: ${addResult.message || '未知错误'}`);
+                        }
+                    } catch (error) {
+                        failCount++;
+                        console.error(`添加歌曲 ${songId} 时发生错误:`, error);
+                    }
+                }
+                
+                // 在控制台输出添加结果
+                console.log(`歌曲添加完成: 成功 ${successCount} 首，失败 ${failCount} 首`);
+                
+                // 显示成功消息
+                showToast('歌单转存成功!', 'success');
+                
+                // 刷新用户歌单列表和侧边栏歌单信息
+                if (typeof loadUserPlaylists === 'function') {
+                    console.log('调用loadUserPlaylists()函数刷新侧边栏');
+                    loadUserPlaylists();
+                } else if (typeof window.updateSidebarPlaylist === 'function') {
+                    console.log('调用window.updateSidebarPlaylist()函数刷新侧边栏');
+                    window.updateSidebarPlaylist();
+                } else {
+                    console.log('无法找到刷新侧边栏的函数，将刷新整个页面');
+                    // 如果无法找到刷新函数，刷新整个页面
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('转存歌单失败:', error);
+                showToast('转存歌单失败: ' + error.message, 'error');
+            } finally {
+                // 恢复按钮状态
+                const transferBtn = document.querySelector('.wy-music-parser .wy-playlist-header .play-all-button:nth-of-type(2)');
+                if (transferBtn) {
+                    transferBtn.innerHTML = '<i class="icon">📥</i> 一键转存';
+                    transferBtn.disabled = false;
+                }
+            }
+        },
+        
+        /**
          * HTML转义函数：防止XSS攻击，安全渲染文本
          * @param {string} text - 需要转义的文本
          * @returns {string} - 转义后的文本
@@ -1120,18 +1236,15 @@
             count.style.color = '#666';
             playlistInfo.appendChild(count);
             
+            // 创建按钮容器，使播放全部和转存按钮水平排列
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.gap = '10px';
+            buttonContainer.style.marginTop = 'var(--spacing-md)';
+            
             // 添加播放全部按钮
             const playAllBtn = document.createElement('button');
             playAllBtn.className = 'play-all-button';
-            playAllBtn.style.padding = '10px 20px';
-            playAllBtn.style.backgroundColor = '#6c4ab6';
-            playAllBtn.style.color = 'white';
-            playAllBtn.style.border = 'none';
-            playAllBtn.style.borderRadius = '8px';
-            playAllBtn.style.cursor = 'pointer';
-            playAllBtn.style.display = 'flex';
-            playAllBtn.style.alignItems = 'center';
-            playAllBtn.style.gap = '8px';
             
             const playIcon = document.createElement('i');
             playIcon.className = 'icon';
@@ -1148,7 +1261,31 @@
                 window.myMusicPage.playPlaylist(event);
             });
             
-            playlistInfo.appendChild(playAllBtn);
+            buttonContainer.appendChild(playAllBtn);
+            
+            // 添加一键转存按钮
+            const transferBtn = document.createElement('button');
+            transferBtn.className = 'play-all-button'; // 使用与播放全部按钮相同的类
+            
+            const transferIcon = document.createElement('i');
+            transferIcon.className = 'icon';
+            transferIcon.textContent = '📥';
+            transferBtn.appendChild(transferIcon);
+            
+            const transferText = document.createElement('span');
+            transferText.textContent = '一键转存';
+            transferBtn.appendChild(transferText);
+            
+            // 添加点击事件
+            transferBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                window.myMusicPage.transferPlaylist(playlist.id);
+            });
+            
+            buttonContainer.appendChild(transferBtn);
+            
+            // 将按钮容器添加到playlistInfo
+            playlistInfo.appendChild(buttonContainer);
             
             // 组装头部
             playlistHeader.appendChild(playlistCover);
@@ -1470,6 +1607,43 @@
             loadingState.style.display = 'none';
             errorState.textContent = message;
             errorState.style.display = 'block';
+        },
+        
+        /**
+         * 显示成功提示
+         */
+        showSuccess: function(message) {
+            const resultContainer = document.getElementById('resultContainer');
+            const statusContainer = document.getElementById('statusContainer');
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const initialHint = document.getElementById('initialHint');
+            
+            // 创建或获取成功状态元素
+            let successState = document.getElementById('successState');
+            if (!successState) {
+                successState = document.createElement('div');
+                successState.id = 'successState';
+                successState.style.color = '#00b42a';
+                successState.style.textAlign = 'center';
+                successState.style.padding = '20px';
+                successState.style.fontSize = '16px';
+                successState.style.border = '1px solid #00b42a';
+                successState.style.borderRadius = '8px';
+                successState.style.backgroundColor = 'rgba(0, 180, 42, 0.1)';
+                statusContainer.appendChild(successState);
+            }
+            
+            // 隐藏结果容器（不占用空间）
+            resultContainer.style.display = 'none';
+            if (initialHint) initialHint.style.display = 'none';
+            
+            // 显示状态容器和成功状态
+            statusContainer.style.display = 'block';
+            loadingState.style.display = 'none';
+            errorState.style.display = 'none';
+            successState.textContent = message;
+            successState.style.display = 'block';
         },
         
         /**

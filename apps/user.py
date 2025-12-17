@@ -581,7 +581,7 @@ def remove_song_from_playlist(playlist_id, song_id):
 def update_playlist(playlist_id):
     """
     修改歌单信息
-    PUT参数: name (歌单名称), cover_url (歌单封面URL)
+    PUT参数: name (歌单名称), cover_url (歌单封面URL), description (歌单描述)
     """
     try:
         user_id = session.get('user_id')
@@ -590,10 +590,11 @@ def update_playlist(playlist_id):
         # 获取要更新的字段
         name = data.get('name')
         cover_url = data.get('cover_url')
+        description = data.get('description')
         
         # 验证参数 - 至少提供一个字段进行更新
-        if name is None and cover_url is None:
-            return jsonify({'message': '请提供要更新的歌单名称或封面'}), 400
+        if name is None and cover_url is None and description is None:
+            return jsonify({'message': '请提供要更新的歌单名称、封面或描述'}), 400
         
         # 验证歌单名称
         if name is not None:
@@ -610,6 +611,12 @@ def update_playlist(playlist_id):
             if not isinstance(cover_url, str):
                 return jsonify({'message': '封面URL格式错误'}), 400
             # 不再限制封面URL长度（数据库已修改为TEXT类型）
+        
+        # 验证描述
+        if description is not None:
+            if not isinstance(description, str):
+                return jsonify({'message': '描述格式错误'}), 400
+            # 描述可以为空字符串（表示清除描述）
         
         with Mysql() as mysql:
             # 首先检查歌单是否存在且属于当前用户，添加逻辑删除条件
@@ -632,6 +639,10 @@ def update_playlist(playlist_id):
             if cover_url is not None:
                 update_fields.append("cover_url = %s")
                 params.append(cover_url)
+            
+            if description is not None:
+                update_fields.append("description = %s")
+                params.append(description)
             
             # 添加更新时间
             update_fields.append("update_time = CURRENT_TIMESTAMP")

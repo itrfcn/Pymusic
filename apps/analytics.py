@@ -21,6 +21,42 @@ if log_dir:
     os.makedirs(log_dir, exist_ok=True)
 
 
+def get_all_log_files():
+    """
+    获取所有日志文件，包括分割后的日志文件
+    
+    Returns:
+        list: 按时间顺序排序的日志文件路径列表（最新的日志文件在前）
+    """
+    import glob
+    
+    if not os.path.exists(log_dir):
+        return []
+    
+    # 获取主日志文件名（不含路径）
+    log_filename = os.path.basename(LOG_FILE_PATH)
+    
+    # 查找所有匹配的日志文件（包括主文件和分割后的文件如app.log.1, app.log.2等）
+    log_pattern = os.path.join(log_dir, f"{log_filename}*")
+    log_files = glob.glob(log_pattern)
+    
+    # 对日志文件进行排序，确保主文件（app.log）排在最前面，然后是编号最大的分割文件
+    def log_file_key(filename):
+        if filename == LOG_FILE_PATH:
+            # 主日志文件返回-1，排在最前面
+            return -1
+        else:
+            # 分割后的日志文件返回其编号，编号越大的文件越旧，应该放在后面
+            # 例如 app.log.1 是最近的分割文件，app.log.2 是更早的
+            suffix = filename[len(LOG_FILE_PATH) + 1:]
+            return int(suffix) if suffix.isdigit() else 0
+    
+    # 按自定义键排序
+    log_files.sort(key=log_file_key)
+    
+    return log_files
+
+
 def analyze_user_growth(start_date=None, end_date=None):
     """
     分析用户增长数量
@@ -82,17 +118,15 @@ def analyze_website_visits(start_date=None, end_date=None):
         dict: 网站访问量数据
     """
     try:
-        # 检查日志文件是否存在
-        if not os.path.exists(LOG_FILE_PATH):
-            current_app.logger.warning(f"日志文件不存在: {LOG_FILE_PATH}")
+        # 获取所有日志文件
+        log_files = get_all_log_files()
+        
+        if not log_files:
+            current_app.logger.warning(f"没有找到日志文件: {LOG_FILE_PATH}")
             # 创建空的日志文件，确保下次有日志写入
             with open(LOG_FILE_PATH, 'w', encoding='utf-8') as f:
                 f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]} [INFO] 日志文件已创建\n")
             return {"total_visits": 0, "daily_visits": {}}
-        
-        # 读取日志文件
-        with open(LOG_FILE_PATH, 'r', encoding='utf-8') as f:
-            log_lines = f.readlines()
         
         # 日志格式正则表达式 - 适配实际日志格式
         log_pattern = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3} \[.*?\] \[.*?\] \[.*?\] \[.*?\] - .*')
@@ -101,20 +135,28 @@ def analyze_website_visits(start_date=None, end_date=None):
         total_visits = 0
         daily_visits = defaultdict(int)
         
-        for line in log_lines:
-            match = log_pattern.match(line.strip())
-            if match:
-                log_date = match.group(1).split(' ')[0]  # 获取日期部分
+        # 遍历所有日志文件
+        for log_file_path in log_files:
+            try:
+                with open(log_file_path, 'r', encoding='utf-8') as f:
+                    log_lines = f.readlines()
                 
-                # 检查是否在日期范围内
-                if start_date and log_date < start_date:
-                    continue
-                if end_date and log_date > end_date:
-                    continue
-                
-                # 统计访问量
-                total_visits += 1
-                daily_visits[log_date] += 1
+                for line in log_lines:
+                    match = log_pattern.match(line.strip())
+                    if match:
+                        log_date = match.group(1).split(' ')[0]  # 获取日期部分
+                        
+                        # 检查是否在日期范围内
+                        if start_date and log_date < start_date:
+                            continue
+                        if end_date and log_date > end_date:
+                            continue
+                        
+                        # 统计访问量
+                        total_visits += 1
+                        daily_visits[log_date] += 1
+            except Exception as file_error:
+                current_app.logger.error(f"处理日志文件 {log_file_path} 失败: {str(file_error)}")
         
         return {
             "total_visits": total_visits,
@@ -133,17 +175,15 @@ def analyze_visit_paths():
         dict: 访问路径数据，按路径分组
     """
     try:
-        # 检查日志文件是否存在
-        if not os.path.exists(LOG_FILE_PATH):
-            current_app.logger.warning(f"日志文件不存在: {LOG_FILE_PATH}")
+        # 获取所有日志文件
+        log_files = get_all_log_files()
+        
+        if not log_files:
+            current_app.logger.warning(f"没有找到日志文件: {LOG_FILE_PATH}")
             # 创建空的日志文件，确保下次有日志写入
             with open(LOG_FILE_PATH, 'w', encoding='utf-8') as f:
                 f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]} [INFO] 日志文件已创建\n")
             return {}
-        
-        # 读取日志文件
-        with open(LOG_FILE_PATH, 'r', encoding='utf-8') as f:
-            log_lines = f.readlines()
         
         # 日志路径正则表达式 - 适配实际日志格式，使用更通用的方法
         path_pattern = re.compile(r'\|.*?(/.*?) \|')
@@ -151,11 +191,19 @@ def analyze_visit_paths():
         # 统计访问路径
         path_counts = Counter()
         
-        for line in log_lines:
-            match = path_pattern.search(line.strip())
-            if match:
-                path = match.group(1)
-                path_counts[path] += 1
+        # 遍历所有日志文件
+        for log_file_path in log_files:
+            try:
+                with open(log_file_path, 'r', encoding='utf-8') as f:
+                    log_lines = f.readlines()
+                
+                for line in log_lines:
+                    match = path_pattern.search(line.strip())
+                    if match:
+                        path = match.group(1)
+                        path_counts[path] += 1
+            except Exception as file_error:
+                current_app.logger.error(f"处理日志文件 {log_file_path} 失败: {str(file_error)}")
         
         return dict(path_counts)
     except Exception as e:
@@ -171,17 +219,15 @@ def analyze_user_ip_locations():
         dict: IP地址统计数据
     """
     try:
-        # 检查日志文件是否存在
-        if not os.path.exists(LOG_FILE_PATH):
-            current_app.logger.warning(f"日志文件不存在: {LOG_FILE_PATH}")
+        # 获取所有日志文件
+        log_files = get_all_log_files()
+        
+        if not log_files:
+            current_app.logger.warning(f"没有找到日志文件: {LOG_FILE_PATH}")
             # 创建空的日志文件，确保下次有日志写入
             with open(LOG_FILE_PATH, 'w', encoding='utf-8') as f:
                 f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]} [INFO] 日志文件已创建\n")
             return {"total_ips": 0, "ip_counts": {}}
-        
-        # 读取日志文件
-        with open(LOG_FILE_PATH, 'r', encoding='utf-8') as f:
-            log_lines = f.readlines()
         
         # IP地址正则表达式 - 适配实际日志格式
         ip_pattern = re.compile(r'IP: (.*?) \|')
@@ -189,11 +235,19 @@ def analyze_user_ip_locations():
         # 统计IP地址
         ip_counts = Counter()
         
-        for line in log_lines:
-            match = ip_pattern.search(line.strip())
-            if match:
-                ip = match.group(1)
-                ip_counts[ip] += 1
+        # 遍历所有日志文件
+        for log_file_path in log_files:
+            try:
+                with open(log_file_path, 'r', encoding='utf-8') as f:
+                    log_lines = f.readlines()
+                
+                for line in log_lines:
+                    match = ip_pattern.search(line.strip())
+                    if match:
+                        ip = match.group(1)
+                        ip_counts[ip] += 1
+            except Exception as file_error:
+                current_app.logger.error(f"处理日志文件 {log_file_path} 失败: {str(file_error)}")
         
         return {
             "total_ips": len(ip_counts),

@@ -643,8 +643,8 @@ def configure_logging(app: Flask) -> None:
     # 2. 获取日志配置参数
     log_level: str = getattr(current_config, 'LOG_LEVEL', 'INFO')
     log_file: str = getattr(current_config, 'LOG_FILE', 'logs/app.log')
-    log_max_bytes: int = getattr(current_config, 'LOG_MAX_BYTES', 1024 * 1024 * 5)  # 默认5MB
-    log_backup_count: int = getattr(current_config, 'LOG_BACKUP_COUNT', 30)  # 默认保留30个备份
+    log_max_bytes: int = getattr(current_config, 'LOG_MAX_BYTES', 1024 * 1024 * 50)  # 默认50MB
+    log_backup_count: int = getattr(current_config, 'LOG_BACKUP_COUNT', 0)  # 默认保留全部备份
     
     # 3. 日志级别容错处理
     numeric_level: int = getattr(logging, log_level.upper(), logging.INFO)

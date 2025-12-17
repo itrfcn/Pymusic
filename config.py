@@ -37,8 +37,8 @@ class Config:
     # 日志配置
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_FILE = os.environ.get('LOG_FILE', 'logs/app.log')
-    LOG_MAX_BYTES = int(os.environ.get('LOG_MAX_BYTES', 1024 * 1024 * 5))  # 默认5MB
-    LOG_BACKUP_COUNT = int(os.environ.get('LOG_BACKUP_COUNT', 30))  # 默认保留30个备份
+    LOG_MAX_BYTES = int(os.environ.get('LOG_MAX_BYTES', 1024 * 1024 * 50))  # 默认50MB
+    LOG_BACKUP_COUNT = int(os.environ.get('LOG_BACKUP_COUNT', 0))  # 默认保留全部备份
     
     # 防护扫描配置
     # IP访问频率限制

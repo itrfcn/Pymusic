@@ -559,13 +559,20 @@
                 const tracks = playlist.tracks || playlist['t-tracks'] || [];
                 const songIds = tracks.map(track => track.id);
                 
-                // 批量添加歌曲到歌单
+                // 批量添加歌曲到歌单 - 并行处理优化
                 let successCount = 0;
                 let failCount = 0;
                 
-                for (const songId of songIds) {
-                    try {
-                        const addResponse = await fetch(`/user/playlist/${newPlaylistId}/add_song`, {
+                // 定义每批处理的歌曲数量
+                const batchSize = 10;
+                
+                // 分批处理歌曲
+                for (let i = 0; i < songIds.length; i += batchSize) {
+                    const batch = songIds.slice(i, i + batchSize);
+                    
+                    // 创建并行请求
+                    const requests = batch.map(songId => {
+                        return fetch(`/user/playlist/${newPlaylistId}/add_song`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -573,20 +580,23 @@
                             body: JSON.stringify({
                                 song_id: songId
                             })
-                        });
-                        
-                        const addResult = await addResponse.json();
-                        
-                        if (addResponse.ok && addResult.message === '歌曲添加成功') {
-                            successCount++;
-                        } else {
-                            failCount++;
-                            console.warn(`添加歌曲 ${songId} 失败: ${addResult.message || '未知错误'}`);
-                        }
-                    } catch (error) {
-                        failCount++;
-                        console.error(`添加歌曲 ${songId} 时发生错误:`, error);
-                    }
+                        }).then(response => response.json())
+                          .then(addResult => {
+                              if (addResult.message === '歌曲添加成功') {
+                                  successCount++;
+                              } else {
+                                  failCount++;
+                                  console.warn(`添加歌曲 ${songId} 失败: ${addResult.message || '未知错误'}`);
+                              }
+                          })
+                          .catch(error => {
+                              failCount++;
+                              console.error(`添加歌曲 ${songId} 时发生错误:`, error);
+                          });
+                    });
+                    
+                    // 等待当前批次所有请求完成
+                    await Promise.allSettled(requests);
                 }
                 
                 // 在控制台输出添加结果

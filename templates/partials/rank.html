@@ -166,7 +166,7 @@
     }
 
     /* 歌曲信息 */
-    .song-info {
+    .rank-song-info {
         flex: 1;
         display: flex;
         align-items: center;
@@ -180,11 +180,11 @@
         object-fit: cover;
     }
 
-    .song-details {
+    .rank-song-details {
             min-width: 0;
         }
 
-        .song-name {
+        .rank-song-name {
             font-size: 1rem;
             color: #ffffff;
             margin-bottom: 3px;
@@ -193,7 +193,7 @@
             text-overflow: ellipsis;
         }
 
-        .song-artist {
+        .rank-song-artist {
             font-size: 0.85rem;
             color: #888;
             white-space: nowrap;
@@ -203,7 +203,7 @@
         }
 
         /* 专辑信息样式 */
-        .song-album {
+        .rank-song-album {
             font-size: 0.8rem;
             color: #666;
             white-space: nowrap;
@@ -292,6 +292,10 @@
             width: 30px;
             height: 30px;
             font-size: 1rem;
+        }
+
+        .rank-song-details {
+            min-width: 0;
         }
     }
 
@@ -455,12 +459,12 @@
                 // 渲染歌曲项HTML
                 item.innerHTML = `
                 <div class="rank-number ${rank <= 3 ? 'top-' + rank : ''}">${rank}</div>
-                <div class="song-info">
+                <div class="rank-song-info">
                     <img src="${song.cover || 'https://picsum.photos/id/237/300/300'}" alt="${song.name}" class="song-cover">
-                    <div class="song-details">
-                        <div class="song-name">${song.name}</div>
-                        <div class="song-artist">${song.artist}</div>
-                        ${song.album ? `<div class="song-album">${song.album}</div>` : ''}
+                    <div class="rank-song-details">
+                        <div class="rank-song-name">${song.name}</div>
+                        <div class="rank-song-artist">${song.artist}</div>
+                        ${song.album ? `<div class="rank-song-album">${song.album}</div>` : ''}
                     </div>
                 </div>
             `;

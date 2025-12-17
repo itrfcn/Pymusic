@@ -1464,6 +1464,29 @@ img {
         margin-top: 8px;
     }
     
+    /* 侧边栏歌单名称优化 - 移动设备 */
+    #user-playlists .playlist-name {
+        max-width: 120px;  /* 增加宽度以显示更多内容 */
+        -webkit-line-clamp: 2;  /* 改为两行显示，解决半个字问题 */
+        line-clamp: 2;
+        font-size: 13px;  /* 微调字体大小，提升可读性 */
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+    }
+    
+    /* 优化导航链接内边距和间隙，为歌单名称腾出更多空间 */
+    .menu a {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        gap: var(--spacing-sm);
+    }
+    
+    /* 调整歌单计数的字体大小和位置 */
+    #user-playlists .playlist-count {
+        font-size: 11px;
+        margin-left: 4px;
+    }
+    
     /* 表格样式调整 */
     .tracks-table {
         font-size: 12px;

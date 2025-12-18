@@ -365,20 +365,17 @@ def get_playlist_detail(playlist_id):
                 else:
                     # 提取所有歌曲ID
                     song_ids = [song_info['song_id'] for song_info in songs]
-                    # 按批次处理，避免单次请求过多ID（每批最多250个）
-                    batch_size = 250
+                    # 一次性请求所有歌曲详情
                     all_song_details = {}
                     
-                    for i in range(0, len(song_ids), batch_size):
-                        batch_ids = song_ids[i:i+batch_size]
-                        # 批量获取这一批歌曲的详情
-                        batch_result = get_songs_detail(batch_ids)
-                        
-                        if batch_result.get('code') == 200 and batch_result.get('songs'):
-                            # 将结果存入字典，以song_id为key
-                            for song in batch_result['songs']:
-                                if song:
-                                    all_song_details[song.get('id')] = song
+                    # 直接使用所有song_ids请求歌曲详情
+                    batch_result = get_songs_detail(song_ids)
+                    
+                    if batch_result.get('code') == 200 and batch_result.get('songs'):
+                        # 将结果存入字典，以song_id为key
+                        for song in batch_result['songs']:
+                            if song:
+                                all_song_details[song.get('id')] = song
                     
                     # 构建返回结果，保持原有顺序
                     for song_info in songs:

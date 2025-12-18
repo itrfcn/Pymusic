@@ -1097,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 标准化数据结构
             id: track.id || track.song_id || track.songid || track.idx || 0, // 确保id字段存在
             album: track.album || track.al || { picUrl: 'https://picsum.photos/56/56?random=1' },
-            artists: track.artists || track.ar || []
+            artists: track.artists || track.ar || (track.artist ? [{ name: track.artist }] : []) // 处理artist字符串格式
         }));
 
         // 调用window.playTrack（防抖版本）以避免重复请求

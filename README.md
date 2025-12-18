@@ -1,24 +1,24 @@
-# PyMusic - 在线音乐播放平台
+# Pymusic - 在线音乐播放平台
 
 ## 📖 项目概述
 
-PyMusic是一个基于Flask框架开发的现代化在线音乐播放平台，集成了网易云音乐API，提供完整的音乐播放、用户管理和数据分析功能。该平台采用前后端分离架构，后端使用Flask提供RESTful API，前端使用原生HTML/CSS/JavaScript和Vue.js（管理后台）构建用户界面。
+Pymusic是一个基于Flask框架和Vue.js开发的现代化在线音乐播放平台，集成了网易云音乐API，提供完整的音乐播放、用户管理和数据分析功能。该平台采用前后端分离架构，后端使用Flask提供RESTful API，前端使用原生HTML/CSS/JavaScript和Vue.js（管理后台）构建用户界面。
 
-### 项目背景
-随着在线音乐服务的普及，越来越多的用户希望能够在一个平台上方便地搜索、播放和管理自己喜欢的音乐。PyMusic旨在为用户提供一个功能完善、界面友好的在线音乐播放平台，同时为开发者提供一个学习Flask和前后端分离架构的优秀示例。
+## 🎨 设计理念
 
-### 设计理念
 - **用户体验优先**：简洁直观的界面设计，流畅的音乐播放体验
 - **模块化架构**：采用Flask蓝图实现功能模块分离，便于维护和扩展
 - **安全性第一**：全面的安全防护措施，包括IP访问限制、SQL注入检测和XSS防护
 - **数据驱动决策**：丰富的数据分析功能，帮助管理员了解用户行为和系统性能
 
-### 项目目标
-- 提供完整的在线音乐播放解决方案
-- 实现用户个性化音乐体验
-- 构建可扩展的前后端分离架构
-- 提供全面的管理和数据分析功能
-- 确保系统安全性和稳定性
+## 🎯 项目目标
+
+- **完整音乐解决方案**：提供全方位的在线音乐播放服务
+- **个性化体验**：打造专属的用户音乐推荐和播放体验
+- **可扩展架构**：构建灵活的前后端分离系统，支持功能扩展
+- **管理数据分析**：提供全面的管理工具和数据分析功能
+- **稳定安全保障**：确保系统的高可用性、安全性和稳定性
+
 
 ## 🌟 项目特色
 
@@ -43,53 +43,6 @@ PyMusic是一个基于Flask框架开发的现代化在线音乐播放平台，�
 - **可视化分析**：使用图表库展示用户增长趋势、播放统计等数据
 - **数据清理**：定时清理过期数据，保持数据库清洁和系统性能
 
-## 📁 项目结构
-
-```
-wangyi/                     # 项目根目录
-├── app.py                    # 应用入口文件，初始化Flask应用和注册蓝图
-├── config.py                 # 配置文件，定义应用配置类和环境变量加载
-├── requirements.txt          # Python依赖包列表
-├── database_schema.sql       # 数据库结构和初始化SQL语句
-├── .env.example              # 环境变量示例文件
-├── .gitignore                # Git忽略文件配置
-├── LICENSE                   # 项目许可证
-├── apps/                     # 功能模块目录
-│   ├── admin.py              # 管理后台模块，提供管理员功能
-│   ├── analytics.py          # 数据分析模块，提供数据统计功能
-│   ├── clean_history_data.py # 历史数据清理模块，定时清理过期数据
-│   ├── music.py              # 音乐模块，集成网易云音乐API
-│   ├── user.py               # 用户模块，提供用户管理功能
-│   └── tool/                 # 工具类目录
-│       ├── File.py           # 文件操作工具类
-│       ├── JS.py             # JavaScript工具类
-│       └── Mysql.py          # 数据库操作工具类
-├── static/                   # 静态资源目录
-│   ├── assets/               # Vue前端打包资源
-│   ├── css/                  # 样式文件目录
-│   │   └── main.css          # 主要样式文件
-│   ├── img/                  # 图片资源目录
-│   │   └── logo.png          # 网站Logo
-│   └── js/                   # JavaScript文件目录
-│       └── main.js           # 主要JavaScript文件
-└── templates/                # HTML模板目录
-    ├── 404.html              # 404错误页面
-    ├── 500.html              # 500错误页面
-    ├── admin/                # 管理后台模板
-    │   └── index.html        # 管理后台入口页面
-    ├── index.html            # 网站首页模板
-    ├── partials/             # 部分模板目录
-    │   ├── about.html        # 关于页面
-    │   ├── discover.html     # 发现音乐页面
-    │   ├── doc-163.html      # 网易云文档页面
-    │   ├── history.html      # 播放历史页面
-    │   └── rank.html         # 排行榜页面
-    └── user/                 # 用户页面模板
-        ├── edit_profile.html # 编辑个人资料页面
-        ├── login.html        # 登录页面
-        └── register.html     # 注册页面
-```
-
 ## 🛠️ 技术栈
 
 ### 后端技术
@@ -111,7 +64,7 @@ wangyi/                     # 项目根目录
 | CSS3 | - | 页面样式 | 响应式布局、动画效果、渐变 |
 | JavaScript (ES6+) | - | 交互逻辑 | 现代JavaScript特性、简洁语法 |
 | Vue.js | 3.x | 管理后台框架 | 渐进式框架、组件化开发、响应式数据绑定 |
-| art-design-pro | 3.0.0 | 管理后台模板 | 提供响应式布局、组件库、示例代码 |
+| ArtDesignPro | 3.0.0 | 管理后台模板 | 提供响应式布局、组件库、示例代码 |
 | Element UI | 3.x | UI组件库 | 美观的组件、完善的文档、易于使用 |
 
 ### 数据库
@@ -120,171 +73,154 @@ wangyi/                     # 项目根目录
 | MySQL | 5.7+ | 数据存储 | 成熟稳定、高性能、广泛使用 |
 
 
-## 📋 环境要求
 
-- Python 3.8或更高版本
-- MySQL 5.7或更高版本
-- pip包管理器（Python 3.4+内置）
-- Git版本控制工具
-- 现代Web浏览器（Chrome、Firefox、Safari等）
+## 📁 项目结构
+
+```
+wangyi/
+├── apps/                    # 应用模块
+│   ├── tool/               # 工具类
+│   │   ├── File.py         # 文件操作工具
+│   │   ├── JS.py           # JavaScript处理工具
+│   │   └── Mysql.py        # MySQL数据库工具
+│   ├── admin.py            # 管理后台模块
+│   ├── analytics.py        # 数据分析模块
+│   ├── clean_history_data.py # 历史数据清理
+│   ├── music.py            # 音乐核心功能模块
+│   └── user.py             # 用户模块
+├── static/                 # 静态资源
+│   ├── assets/            # 编译后的前端资源
+│   ├── css/               # CSS文件
+│   ├── img/               # 图片资源
+│   └── js/                # JavaScript文件
+├── templates/              # 模板文件
+│   ├── admin/             # 管理后台模板
+│   ├── partials/          # 页面片段
+│   ├── user/              # 用户相关模板
+│   ├── 404.html           # 404页面
+│   ├── 500.html           # 500页面
+│   └── index.html         # 主页
+├── app.py                 # 应用入口
+├── config.py              # 配置文件
+├── database_schema.sql    # 数据库结构
+├── requirements.txt       # 依赖列表
+├── .env.example           # 环境变量示例
+├── .gitignore             # Git忽略文件
+└── LICENSE                # 许可证
+```
 
 ## 🚀 安装部署
 
-### 1. 克隆项目
+### 环境要求
+- Python 3.8+
+- MySQL 5.7+
+- Node.js 14+ (可选，用于Vue.js前端开发)
 
-使用Git克隆项目到本地：
+### 安装步骤
 
-```bash
-git clone https://github.com/itrfcn/Pymusic.git
-cd Pymusic-main
-```
+1. **克隆项目**
+   ```bash
+   git clone https://github.com/itrfcn/Pymusic.git
+   cd Pymusic-main
+   ```
 
+2. **创建虚拟环境**
+   ```bash
+   python -m venv venv
+   # Windows
+   venv\Scripts\activate
+   # Linux/macOS
+   source venv/bin/activate
+   ```
 
-
-### 2. 创建虚拟环境（推荐）
-
-**Windows系统：**
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-**Linux/macOS系统：**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. 安装依赖
-
-在项目根目录下执行以下命令安装Python依赖：
-
-```bash
-pip install -r requirements.txt
-```
-
+3. **安装依赖**
+   ```bash
+   pip install -r requirements.txt
+   ```
 **注意事项**：
 - 建议使用虚拟环境（virtualenv或conda）安装依赖，避免与系统Python环境冲突
 - 如果安装过程中遇到依赖冲突或其他问题，请参考附录中的"故障排除"部分
 
-### 4. 配置环境变量
+4. **配置环境变量**
+   ```bash
+   cp .env.example .env
+   # 根据注释修改.env文件中的参数
+   ```
 
-复制环境变量示例文件并修改：
+5. **初始化数据库**
+   ```bash
+   # 创建数据库
+   mysql -u root -p -e "CREATE DATABASE music;
+   # 导入数据库结构
+   mysql -u root -p music < database_schema.sql
+   ```
 
-```bash
-cp .env.example .env
+6. **启动应用**
+   ```bash
+   # 开发模式
+   flask run
+   ```
+
+
+## 🛡️ 环境变量配置
+
+| 变量名 | 类型 | 默认值 | 描述 | 示例值 |
+|-------|------|------|------|------|
+| FLASK_DEBUG | boolean | True | 是否启用调试模式 | True |
+| SECRET_KEY | string | dev-secret-key-for-development | Flask会话加密密钥 | 8a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0 |
+| DB_HOST | string | localhost | 数据库主机地址 | 127.0.0.1 |
+| DB_PORT | integer | 3306 | 数据库端口 | 3306 |
+| DB_USER | string | root | 数据库用户名 | root |
+| DB_PASSWORD | string | 123456 | 数据库密码 | my-secret-password |
+| DB_NAME | string | music | 数据库名称 | music |
+| HOST | string | 0.0.0.0 | 服务器主机地址 | 0.0.0.0 |
+| PORT | integer | 5000 | 服务器端口 | 8080 |
+| NETEASE_MUSIC_COOKIE | string | - | 网易云音乐Cookie | __remember_me=xxx; MUSIC_U=xxx; |
+| IP_RATE_LIMIT_ENABLED | boolean | True | 是否启用IP访问限制 | True |
+| IP_RATE_LIMIT | integer | 100 | 每分钟最大请求数 | 200 |
+| IP_RATE_LIMIT_WINDOW | integer | 60 | 时间窗口（秒） | 300 |
+| SQL_INJECTION_PATTERNS | tuple | (union select|select.*from|insert.*into|update.*set|delete.*from|drop table|truncate table) | SQL注入检测模式 | (union select|select.*from|insert.*into) |
+| XSS_PATTERNS | tuple | (<script|onload|onerror|onclick|javascript:|alert\() | XSS攻击检测模式 | (<script|onload|onerror|onclick) |
+
+## 📝 API文档
+
+### 音乐相关API
+
+#### 搜索音乐
+```
+GET /music/search?name={关键词}&page={页码}
 ```
 
-使用文本编辑器打开.env文件，配置以下内容：
+#### 解析音乐
+```
+GET /music/jx?ids={song_id}&level={音质}&type={返回类型}
+```
+参数说明：
+- `song_id`：音乐ID
+- `音质`：可选值为`standard`（标准音质）、`high`（高音质）、`lossless`（无损音质）
+- `返回类型`：可选值为`json`（返回JSON格式）、`html`（返回HTML格式）
 
-```env
-# Flask配置
-FLASK_DEBUG=True
-SECRET_KEY=your-secret-key  # 建议使用随机生成的字符串
-
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your-password    # 替换为你的MySQL密码
-DB_NAME=music
-
-# 服务器配置
-HOST=0.0.0.0
-PORT=5000
-
-# 网易云音乐API配置
-NETEASE_MUSIC_COOKIE=your-netease-cookie  # 必填
-
-# 安全防护配置
-IP_RATE_LIMIT_ENABLED=True
-IP_RATE_LIMIT=100
-IP_RATE_LIMIT_WINDOW=60
-SQL_INJECTION_PATTERNS=(union select|select.*from|insert.*into|update.*set|delete.*from|drop table|truncate table)
-XSS_PATTERNS=(<script|onload|onerror|onclick|javascript:|alert\()
+#### 获取歌单详情
+```
+GET /music/playlist/{playlist_id}
 ```
 
-**配置说明**：
-- FLASK_DEBUG：设置为True时启用调试模式，便于开发和调试
-- SECRET_KEY：用于Flask会话加密，建议使用随机生成的字符串
-- DB_*：数据库连接配置，请根据你的MySQL安装情况进行修改
-- NETEASE_MUSIC_COOKIE：从网易云音乐网站获取的Cookie
-- IP_RATE_LIMIT*：IP访问频率限制配置，防止恶意请求
-- SQL_INJECTION_PATTERNS：SQL注入检测模式
-- XSS_PATTERNS：XSS攻击检测模式
+### 用户相关API
 
-### 5. 初始化数据库
-
-#### 步骤1：启动MySQL服务
-
-**Windows系统：**
-```bash
-net start mysql  # 或手动在服务管理中启动MySQL
+#### 用户登录
+```
+POST /user/login
 ```
 
-**Linux系统：**
-```bash
-sudo systemctl start mysql
+#### 用户注册
+```
+POST /user/register
 ```
 
-**macOS系统：**
-```bash
-brew services start mysql
+#### 获取个人信息
 ```
-
-#### 步骤2：创建数据库
-
-使用MySQL客户端创建数据库：
-
-```bash
-mysql -u root -p -e "CREATE DATABASE music DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+GET /user/profile
 ```
-
-#### 步骤3：导入表结构
-
-执行以下命令导入数据库表结构：
-
-```bash
-mysql -u root -p music < database_schema.sql
-```
-#### 步骤4：添加管理员
-
-默认id为1的管理员为超级管理员
-
-### 6. 启动应用
-
-#### 方法一：本地开发环境部署
-
-在项目根目录下执行以下命令启动应用：
-
-```bash
-python app.py
-```
-
-应用将在 http://localhost:5000 启动
-
-#### 方法二：生产环境部署
-
-推荐使用Gunicorn或uWSGI部署生产环境：
-
-**使用Gunicorn部署**：
-```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
-
-**使用uWSGI部署**：
-```bash
-pip install uwsgi
-uwsgi --http 0.0.0.0:5000 --wsgi-file app.py --callable app --processes 4 --threads 2
-```
-
-**生产环境建议**：
-- 使用Nginx作为反向代理服务器
-- 配置SSL证书启用HTTPS
-- 设置适当的日志级别和日志存储路径
-- 定期备份数据库和静态资源
-
 
 ## 🔧 核心功能模块
 
@@ -523,793 +459,67 @@ JavaScript工具类，提供JavaScript代码生成和处理功能。
    - playlist_id字段添加普通索引，提高播放列表歌曲查询效率
    - (playlist_id, song_id)添加联合唯一索引，防止重复添加歌曲
 
-## 🔒 安全防护
+## 🔒 安全特性
 
-### IP访问频率限制
+### 防护措施
+- **IP访问限制**：限制每个IP的请求频率
+- **SQL注入防护**：使用参数化查询和正则检测
+- **XSS防护**：输入过滤和输出编码
+- **异常User-Agent检测**：拦截异常访问
+- **请求内容检查**：检测恶意请求内容
 
-系统实现了基于IP的访问频率限制，防止恶意请求和DDoS攻击。
+### 安全配置
 
-```python
-# IP访问频率限制实现
-ip_requests: Dict[str, List[float]] = {}  # 存储IP请求记录
+在`.env`文件中可以配置以下安全参数：
 
-@app.before_request
-def ip_rate_limit_middleware():
-    if not current_config.IP_RATE_LIMIT_ENABLED:
-        return
-    
-    client_ip = request.remote_addr
-    current_time = time.time()
-    
-    # 清理过期请求记录
-    if client_ip in ip_requests:
-        ip_requests[client_ip] = [t for t in ip_requests[client_ip] if current_time - t < current_config.IP_RATE_LIMIT_WINDOW]
-    else:
-        ip_requests[client_ip] = []
-    
-    # 检查请求数是否超过限制
-    if len(ip_requests[client_ip]) >= current_config.IP_RATE_LIMIT:
-        return jsonify({
-            "code": 429,
-            "message": f"IP访问频率过高，请{current_config.IP_RATE_LIMIT_WINDOW}秒后重试"
-        }), 429
-    
-    # 记录当前请求时间
-    ip_requests[client_ip].append(current_time)
+```bash
+# IP访问限制
+IP_RATE_LIMIT_ENABLED=True
+IP_RATE_LIMIT=100
+IP_RATE_LIMIT_WINDOW=60
+
+# 恶意请求检测
+MALICIOUS_REQUEST_DETECTION=True
+
+# IP黑白名单
+IP_WHITELIST=127.0.0.1
+IP_BLACKLIST=192.168.1.100
 ```
 
-**实现细节**：
-- 使用内存存储IP请求记录，生产环境可考虑使用Redis
-- 支持自定义时间窗口和请求限制数
-- 自动清理过期请求记录，节省内存
+## 🚀 部署建议
 
-### SQL注入检测
+### 生产环境
 
-系统实现了SQL注入检测功能，防止恶意SQL注入攻击。
+1. **使用Gunicorn**：代替Flask内置服务器
+2. **配置Nginx**：作为反向代理
+3. **启用HTTPS**：使用SSL证书
+4. **设置防火墙**：限制访问端口
+5. **定期备份**：数据库和日志定期备份
 
-```python
-# SQL注入检测实现
-def detect_sql_injection(content: str) -> bool:
-    for pattern in current_config.SQL_INJECTION_PATTERNS:
-        if re.search(pattern, content, re.IGNORECASE):
-            return True
-    return False
+### 性能优化
 
-@app.before_request
-def sql_injection_detection_middleware():
-    # 检查请求参数
-    for param, value in request.args.items():
-        if isinstance(value, str) and detect_sql_injection(value):
-            return jsonify({
-                "code": 403,
-                "message": "请求参数包含恶意SQL代码"
-            }), 403
-    
-    # 检查请求体
-    if request.is_json:
-        try:
-            data = request.get_json()
-            for key, value in data.items():
-                if isinstance(value, str) and detect_sql_injection(value):
-                    return jsonify({
-                        "code": 403,
-                        "message": "请求体包含恶意SQL代码"
-                    }), 403
-        except Exception:
-            pass
-```
+1. **数据库索引**：合理设置数据库索引
+2. **缓存机制**：使用Redis缓存热点数据
+3. **异步任务**：使用Celery处理异步任务
+4. **静态资源CDN**：使用CDN加速静态资源
 
-**实现细节**：
-- 使用正则表达式匹配常见的SQL注入模式
-- 检查所有请求参数和请求体
-- 支持自定义SQL注入检测模式
+## 📚 常见问题
 
-### XSS防护
+### Q: 无法播放音乐怎么办？
+A: 请检查网易云音乐Cookie是否配置正确，或者网络连接是否正常。
 
-系统实现了XSS攻击检测功能，防止跨站脚本攻击。
+### Q: 搜索结果不准确？
+A: 请尝试调整搜索关键词，或者检查网易云音乐API是否有更新。
 
-```python
-# XSS防护实现
-def detect_xss(content: str) -> bool:
-    for pattern in current_config.XSS_PATTERNS:
-        if re.search(pattern, content, re.IGNORECASE):
-            return True
-    return False
+### Q: 系统运行缓慢？
+A: 请检查服务器资源使用情况，或者优化数据库查询。
 
-@app.before_request
-def xss_protection_middleware():
-    # 检查请求参数
-    for param, value in request.args.items():
-        if isinstance(value, str) and detect_xss(value):
-            return jsonify({
-                "code": 403,
-                "message": "请求参数包含恶意脚本代码"
-            }), 403
-    
-    # 检查请求体
-    if request.is_json:
-        try:
-            data = request.get_json()
-            for key, value in data.items():
-                if isinstance(value, str) and detect_xss(value):
-                    return jsonify({
-                        "code": 403,
-                        "message": "请求体包含恶意脚本代码"
-                    }), 403
-        except Exception:
-            pass
-```
-
-**实现细节**：
-- 使用正则表达式匹配常见的XSS攻击模式
-- 检查所有请求参数和请求体
-- 支持自定义XSS攻击检测模式
-
-### 其他安全措施
-
-1. **密码加密**：使用werkzeug.security的generate_password_hash函数加密存储密码
-2. **CSRF保护**：使用Flask-WTF的CSRF保护功能
-3. **HTTPS支持**：生产环境配置SSL证书，启用HTTPS
-4. **敏感信息保护**：不在日志中记录敏感信息，如密码、Cookie等
-5. **权限控制**：使用装饰器实现接口权限控制
-
-## 📈 数据分析
-
-### 用户增长分析
-
-```python
-def analyze_user_growth(start_date=None, end_date=None):
-    """
-    分析用户增长趋势
-    
-    Args:
-        start_date: 开始日期，格式为YYYY-MM-DD
-        end_date: 结束日期，格式为YYYY-MM-DD
-    
-    Returns:
-        dict: 包含日期和新增用户数的字典
-    """
-    with Mysql() as mysql:
-        # 构建查询条件
-        where_clause = ["deleted = 0"]
-        params = []
-        
-        if start_date:
-            where_clause.append("DATE(create_time) >= %s")
-            params.append(start_date)
-        if end_date:
-            where_clause.append("DATE(create_time) <= %s")
-            params.append(end_date)
-        
-        # 执行查询
-        query = f"""
-            SELECT DATE(create_time) as date, COUNT(*) as new_users
-            FROM user
-            WHERE {' AND '.join(where_clause)}
-            GROUP BY DATE(create_time)
-            ORDER BY date
-        """
-        result = mysql.sql(query, params)
-        
-        # 转换结果
-        user_growth = {}
-        if result is not None:
-            for item in result:
-                user_growth[str(item['date'])] = item['new_users']
-        
-        return user_growth
-```
-
-**实现细节**：
-- 使用数据库查询按日统计新增用户数
-- 支持自定义时间范围查询
-- 自动处理结果格式转换
-
-### 网站访问量分析
-
-```python
-def analyze_website_visits(start_date=None, end_date=None):
-    """
-    分析网站访问量
-    
-    Args:
-        start_date: 开始日期，格式为YYYY-MM-DD
-        end_date: 结束日期，格式为YYYY-MM-DD
-    
-    Returns:
-        dict: 包含总访问量和每日访问量的字典
-    """
-    # 读取日志文件并分析
-    log_file = "app.log"  # 日志文件路径
-    daily_visits = {}
-    total_visits = 0
-    
-    if not os.path.exists(log_file):
-        return {"total_visits": 0, "daily_visits": {}}
-    
-    with open(log_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            # 解析日志行，提取日期
-            match = re.search(r'\[(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\]', line)
-            if match:
-                date = match.group(1)
-                
-                # 检查日期范围
-                if start_date and date < start_date:
-                    continue
-                if end_date and date > end_date:
-                    continue
-                
-                # 更新访问量统计
-                if date in daily_visits:
-                    daily_visits[date] += 1
-                else:
-                    daily_visits[date] = 1
-                total_visits += 1
-    
-    return {
-        "total_visits": total_visits,
-        "daily_visits": daily_visits
-    }
-```
-
-**实现细节**：
-- 读取系统日志文件分析访问量
-- 使用正则表达式提取日志中的日期信息
-- 支持自定义时间范围查询
-
-### 播放统计分析
-
-```python
-def analyze_play_statistics(start_date=None, end_date=None):
-    """
-    分析播放统计数据
-    
-    Args:
-        start_date: 开始日期，格式为YYYY-MM-DD
-        end_date: 结束日期，格式为YYYY-MM-DD
-    
-    Returns:
-        dict: 包含播放统计数据的字典
-    """
-    with Mysql() as mysql:
-        # 构建查询条件
-        where_clause = []
-        params = []
-        
-        if start_date:
-            where_clause.append("DATE(play_time) >= %s")
-            params.append(start_date)
-        if end_date:
-            where_clause.append("DATE(play_time) <= %s")
-            params.append(end_date)
-        
-        # 查询总播放次数
-        total_plays_query = f"""
-            SELECT COUNT(*) as total_plays
-            FROM play_history
-            {f'WHERE {" AND ".join(where_clause)}' if where_clause else ''}
-        """
-        total_plays_result = mysql.sql(total_plays_query, params)
-        total_plays = total_plays_result[0]['total_plays'] if total_plays_result else 0
-        
-        # 查询最受欢迎的歌曲
-        popular_songs_query = f"""
-            SELECT song_id, song_name, singer_name, COUNT(*) as play_count
-            FROM play_history
-            {f'WHERE {" AND ".join(where_clause)}' if where_clause else ''}
-            GROUP BY song_id, song_name, singer_name
-            ORDER BY play_count DESC
-            LIMIT 10
-        """
-        popular_songs_result = mysql.sql(popular_songs_query, params)
-        popular_songs = [
-            {
-                "song_id": song['song_id'],
-                "song_name": song['song_name'],
-                "singer_name": song['singer_name'],
-                "play_count": song['play_count']
-            }
-            for song in popular_songs_result
-        ] if popular_songs_result else []
-        
-        return {
-            "total_plays": total_plays,
-            "popular_songs": popular_songs
-        }
-```
-
-**实现细节**：
-- 统计总播放次数和最受欢迎的歌曲
-- 支持自定义时间范围查询
-- 限制返回最受欢迎的前10首歌曲
-
-## 📝 API文档
-
-### 1. 用户接口
-
-#### 注册接口
-
-- **URL**: `/user/register`
-- **方法**: `POST`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | username | string | 是 | 用户名，长度3-20个字符 |
-  | password | string | 是 | 密码，长度6-20个字符 |
-  | confirm_password | string | 是 | 确认密码，必须与password一致 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "注册成功",
-    "data": {
-      "user_id": 1,
-      "username": "testuser"
-    }
-  }
-  ```
-
-#### 登录接口
-
-- **URL**: `/user/login`
-- **方法**: `POST`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | username | string | 是 | 用户名 |
-  | password | string | 是 | 密码 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "登录成功",
-    "data": {
-      "user_id": 1,
-      "username": "testuser",
-      "is_admin": false
-    }
-  }
-  ```
-
-#### 获取用户信息接口
-
-- **URL**: `/user/info`
-- **方法**: `GET`
-- **认证**: 需要登录
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取用户信息成功",
-    "data": {
-      "user_id": 1,
-      "username": "testuser",
-      "is_admin": false,
-      "create_time": "2023-01-01 12:00:00"
-    }
-  }
-  ```
-
-#### 更新用户信息接口
-
-- **URL**: `/user/update`
-- **方法**: `POST`
-- **认证**: 需要登录
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | username | string | 否 | 新用户名，长度3-20个字符 |
-  | password | string | 否 | 新密码，长度6-20个字符 |
-  | confirm_password | string | 否 | 确认新密码，必须与password一致 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "更新用户信息成功",
-    "data": {
-      "user_id": 1,
-      "username": "newusername"
-    }
-  }
-  ```
-
-### 2. 音乐接口
-
-#### 搜索歌曲接口
-
-- **URL**: `/music/search`
-- **方法**: `GET`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | keyword | string | 是 | 搜索关键词 |
-  | limit | integer | 否 | 搜索结果数量，默认20 |
-  | offset | integer | 否 | 搜索结果偏移量，默认0 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "搜索成功",
-    "data": {
-      "songs": [
-        {
-          "id": 123456,
-          "name": "歌曲名称",
-          "artists": [
-            {
-              "id": 1001,
-              "name": "歌手名称"
-            }
-          ],
-          "album": {
-            "id": 2001,
-            "name": "专辑名称",
-            "picUrl": "https://example.com/album.jpg"
-          },
-          "duration": 240000
-        }
-      ],
-      "total": 100
-    }
-  }
-  ```
-
-#### 获取歌曲详情接口
-
-- **URL**: `/music/detail`
-- **方法**: `GET`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | id | integer | 是 | 歌曲ID |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取歌曲详情成功",
-    "data": {
-      "id": 123456,
-      "name": "歌曲名称",
-      "artists": [
-        {
-          "id": 1001,
-          "name": "歌手名称"
-        }
-      ],
-      "album": {
-        "id": 2001,
-        "name": "专辑名称",
-        "picUrl": "https://example.com/album.jpg"
-      },
-      "duration": 240000,
-      "lyric": "歌曲歌词..."
-    }
-  }
-  ```
-
-#### 播放歌曲接口
-
-- **URL**: `/music/play`
-- **方法**: `GET`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | id | integer | 是 | 歌曲ID |
-  | quality | string | 否 | 音质，可选值：low, medium, high，默认medium |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取播放URL成功",
-    "data": {
-      "url": "https://music.163.com/song/media/outer/url?id=123456.mp3"
-    }
-  }
-  ```
-
-#### 获取歌词接口
-
-- **URL**: `/music/lyric`
-- **方法**: `GET`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | id | integer | 是 | 歌曲ID |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取歌词成功",
-    "data": {
-      "lyric": "[00:00.00]歌曲名称\n[00:05.00]歌曲歌词...",
-      "translated_lyric": "[00:00.00]Song Name\n[00:05.00]Song lyrics..."
-    }
-  }
-  ```
-
-#### 同步歌单接口
-
-- **URL**: `/music/sync-playlist`
-- **方法**: `POST`
-- **认证**: 需要登录
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "同步歌单成功",
-    "data": {
-      "synced_playlists": 3,
-      "playlists": [
-        {
-          "id": 1,
-          "name": "我喜欢的音乐",
-          "song_count": 100
-        }
-      ]
-    }
-  }
-  ```
-
-### 3. 管理接口
-
-#### 管理员登录接口
-
-- **URL**: `/admin/login`
-- **方法**: `POST`
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | username | string | 是 | 管理员用户名 |
-  | password | string | 是 | 管理员密码 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "登录成功",
-    "data": {
-      "user_id": 1,
-      "username": "admin",
-      "is_admin": true
-    }
-  }
-  ```
-
-#### 获取用户列表接口
-
-- **URL**: `/admin/users`
-- **方法**: `GET`
-- **认证**: 需要管理员权限
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | page | integer | 否 | 页码，默认1 |
-  | page_size | integer | 否 | 每页数量，默认20 |
-  | username | string | 否 | 用户名搜索关键词 |
-  | status | integer | 否 | 用户状态，1:启用，0:禁用 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取用户列表成功",
-    "data": {
-      "users": [
-        {
-          "id": 1,
-          "username": "testuser",
-          "is_admin": false,
-          "status": 1,
-          "create_time": "2023-01-01 12:00:00"
-        }
-      ],
-      "total": 100,
-      "page": 1,
-      "page_size": 20
-    }
-  }
-  ```
-
-#### 更新用户接口
-
-- **URL**: `/admin/user/update`
-- **方法**: `POST`
-- **认证**: 需要管理员权限
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | user_id | integer | 是 | 用户ID |
-  | status | integer | 否 | 用户状态，1:启用，0:禁用 |
-  | is_admin | integer | 否 | 是否管理员，1:是，0:否 |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "更新用户成功",
-    "data": {
-      "user_id": 1,
-      "status": 0
-    }
-  }
-  ```
-
-#### 删除用户接口
-
-- **URL**: `/admin/user/delete`
-- **方法**: `POST`
-- **认证**: 需要管理员权限
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | user_id | integer | 是 | 用户ID |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "删除用户成功"
-  }
-  ```
-
-### 4. 数据分析接口
-
-#### 用户增长分析接口
-
-- **URL**: `/analytics/user-growth`
-- **方法**: `GET`
-- **认证**: 需要管理员权限
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | start_date | string | 否 | 开始日期，格式YYYY-MM-DD |
-  | end_date | string | 否 | 结束日期，格式YYYY-MM-DD |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取用户增长数据成功",
-    "data": {
-      "user_growth": {
-        "2023-01-01": 10,
-        "2023-01-02": 15,
-        "2023-01-03": 20
-      }
-    }
-  }
-  ```
-
-#### 网站访问量分析接口
-
-- **URL**: `/analytics/website-visits`
-- **方法**: `GET`
-- **认证**: 需要管理员权限
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | start_date | string | 否 | 开始日期，格式YYYY-MM-DD |
-  | end_date | string | 否 | 结束日期，格式YYYY-MM-DD |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取网站访问量数据成功",
-    "data": {
-      "total_visits": 1000,
-      "daily_visits": {
-        "2023-01-01": 100,
-        "2023-01-02": 150,
-        "2023-01-03": 200
-      }
-    }
-  }
-  ```
-
-#### 播放统计分析接口
-
-- **URL**: `/analytics/play-statistics`
-- **方法**: `GET`
-- **认证**: 需要管理员权限
-- **参数**:
-  | 名称 | 类型 | 必需 | 描述 |
-  |------|------|------|------|
-  | start_date | string | 否 | 开始日期，格式YYYY-MM-DD |
-  | end_date | string | 否 | 结束日期，格式YYYY-MM-DD |
-
-- **响应格式**:
-  ```json
-  {
-    "code": 200,
-    "message": "获取播放统计数据成功",
-    "data": {
-      "total_plays": 5000,
-      "popular_songs": [
-        {
-          "song_id": 123456,
-          "song_name": "歌曲名称",
-          "singer_name": "歌手名称",
-          "play_count": 1000
-        }
-      ]
-    }
-  }
-  ```
-
-## 🛡️ 环境变量配置
-
-| 变量名 | 类型 | 默认值 | 描述 | 示例值 |
-|-------|------|------|------|------|
-| FLASK_DEBUG | boolean | True | 是否启用调试模式 | True |
-| SECRET_KEY | string | dev-secret-key-for-development | Flask会话加密密钥 | 8a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0 |
-| DB_HOST | string | localhost | 数据库主机地址 | 127.0.0.1 |
-| DB_PORT | integer | 3306 | 数据库端口 | 3306 |
-| DB_USER | string | root | 数据库用户名 | root |
-| DB_PASSWORD | string | 123456 | 数据库密码 | my-secret-password |
-| DB_NAME | string | music | 数据库名称 | music |
-| HOST | string | 0.0.0.0 | 服务器主机地址 | 0.0.0.0 |
-| PORT | integer | 5000 | 服务器端口 | 8080 |
-| NETEASE_MUSIC_COOKIE | string | - | 网易云音乐Cookie | __remember_me=xxx; MUSIC_U=xxx; |
-| IP_RATE_LIMIT_ENABLED | boolean | True | 是否启用IP访问限制 | True |
-| IP_RATE_LIMIT | integer | 100 | 每分钟最大请求数 | 200 |
-| IP_RATE_LIMIT_WINDOW | integer | 60 | 时间窗口（秒） | 300 |
-| SQL_INJECTION_PATTERNS | tuple | (union select|select.*from|insert.*into|update.*set|delete.*from|drop table|truncate table) | SQL注入检测模式 | (union select|select.*from|insert.*into) |
-| XSS_PATTERNS | tuple | (<script|onload|onerror|onclick|javascript:|alert\() | XSS攻击检测模式 | (<script|onload|onerror|onclick) |
-
-## 🤝 贡献指南
-
-### 开发环境搭建
-
-1. 克隆项目到本地：`git clone https://github.com/itrfcn/Pymusic.git`
-2. 创建虚拟环境：`python -m venv venv`
-3. 激活虚拟环境：
-   - Windows: `venv\Scripts\activate`
-   - Linux/macOS: `source venv/bin/activate`
-4. 安装依赖：`pip install -r requirements.txt`
-5. 配置环境变量：`cp .env.example .env`
-6. 初始化数据库：`mysql -u root -p music < database_schema.sql`
-7. 启动应用：`python app.py`
-
-### 代码规范
-
-- 使用PEP 8规范编写Python代码
-- 函数和类使用文档字符串说明功能和参数
-- 变量和函数名使用小写字母和下划线组合
-- 类名使用驼峰命名法
-- 代码注释清晰明了，解释复杂逻辑和关键步骤
-- 避免使用魔法数字，使用常量代替
-- 函数长度不超过50行，类不超过300行
-
-### 提交代码
-
-1. 创建特性分支：`git checkout -b feature/your-feature`
-2. 编写代码并提交：`git add . && git commit -m "Add your feature"`
-3. 推送到远程分支：`git push origin feature/your-feature`
-4. 创建Pull Request，描述功能和修改内容
-
-### 代码审查
-
-- 确保代码符合项目规范和架构设计
-- 检查代码逻辑和性能问题
-- 提供建设性的反馈和改进建议
-- 确保测试用例覆盖新功能
 
 ## 📄 许可证
 
 本项目采用MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情
 
-## 鸣谢
+## 🙏 鸣谢
 
 - [art-design-pro](https://github.com/Daymychen/art-design-pro) - 提供管理后台模板
 - [Flask](https://flask.palletsprojects.com/) - Python Web框架
@@ -1317,90 +527,43 @@ def analyze_play_statistics(start_date=None, end_date=None):
 - [Vue.js](https://vuejs.org/) - 前端渐进式框架
 - [Element UI](https://element.eleme.cn/) - 前端UI组件库
 
+## 🌟 优秀项目推荐
+
+以下是一些与本项目相关的优秀开源项目，供您参考学习：
+
+- 🎵 **[UniMusic](https://github.com/FOxfys/uniapp-music)** - 基于本项目开发的uni-app多平台音乐应用
+
+## 🤝 贡献指南
+
+欢迎提交Issue和Pull Request！
+
+### 贡献步骤
+
+1. **Fork项目**：点击项目页面右上角的Fork按钮
+2. **克隆项目**：`git clone https://github.com/itrfcn/Pymusic.git`
+3. **创建分支**：`git checkout -b feature/your-feature`
+4. **提交更改**：`git commit -am 'Add some feature'`
+5. **推送到分支**：`git push origin feature/your-feature`
+
+### 提交Issue
+
+- 描述问题或建议
+- 提供复现步骤（如果有）
+- 附上相关日志或截图
+
+### 提交Pull Request
+
+- 基于最新的`dev`分支
+- 描述变更内容
+- 确保代码符合项目规范
+- 提交PR后，会进行审核和合并
+
 ## 📞 联系方式
 
-如有问题或建议，欢迎通过以下方式联系：
+如有问题或建议，请通过以下方式联系：
 
-- GitHub Issues: https://github.com/itrfcn/Pymusic/issues
-
-
-## 📚 附录
-
-### 故障排除
-
-#### 数据库连接错误
-
-**问题**：无法连接到数据库，提示"Access denied for user 'root'@'localhost'"
-
-**解决方案**：
-1. 检查MySQL是否已启动
-   - Windows: `net start mysql`
-   - Linux: `sudo systemctl start mysql`
-   - macOS: `brew services start mysql`
-2. 检查.env文件中的数据库配置是否正确
-3. 确保MySQL用户有足够的权限访问指定数据库
-   ```sql
-   GRANT ALL PRIVILEGES ON music.* TO 'root'@'localhost' IDENTIFIED BY 'your-password';
-   FLUSH PRIVILEGES;
-   ```
-4. 尝试重置MySQL用户密码
-   ```sql
-   ALTER USER 'root'@'localhost' IDENTIFIED BY 'new-password';
-   FLUSH PRIVILEGES;
-   ```
-
-#### 依赖安装失败
-
-**问题**：安装依赖时出现"Could not find a version that satisfies the requirement"
-
-**解决方案**：
-1. 更新pip：`pip install --upgrade pip`
-2. 检查Python版本是否符合要求（>=3.8）
-3. 尝试使用虚拟环境重新安装
-4. 手动安装特定版本的依赖包：`pip install flask==3.0.3`
-
-#### 音乐播放失败
-
-**问题**：无法播放音乐，提示"无法加载音频文件"
-
-**解决方案**：
-1. 检查网络连接是否正常
-2. 确保网易云音乐API可用
-3. 检查浏览器控制台是否有错误信息
-4. 尝试刷新页面或重新登录
-5. 检查.env文件中的网易云音乐Cookie是否配置正确
-
-#### 管理后台无法访问
-
-**问题**：访问/admin/时出现404错误
-
-**解决方案**：
-1. 确保Vue打包资源已正确放置在static/assets目录
-2. 检查templates/admin/index.html文件中的资源引用路径
-3. 确保admin蓝图已正确注册
-4. 检查管理员账号是否有访问权限
-5. 查看浏览器控制台是否有资源加载错误
-
-#### Vue管理页面资源404错误
-
-**问题**：访问/admin/时出现"GET http://127.0.0.1:5000/static/admin/assets/index-Pun-ULnE.js net::ERR_ABORTED 404 (NOT FOUND)"
-
-**解决方案**：
-1. 检查static/assets目录下是否存在该文件
-2. 确保Vue打包后的资源文件已正确复制到static/assets目录
-3. 检查templates/admin/index.html文件中的资源引用路径是否正确
-4. 重新打包Vue项目并复制资源文件
-
-
-### 管理员账号安全建议
-
-1. **使用强密码**：管理员密码应包含大小写字母、数字和特殊字符，长度至少8位
-2. **定期更换密码**：建议每3个月更换一次管理员密码
-3. **限制登录IP**：在生产环境中，建议限制管理员账号只能从特定IP登录
-4. **启用双因素认证**：条件允许时，启用双因素认证增加账号安全性
-5. **定期审计日志**：定期查看系统日志，检查是否有异常登录和操作记录
-6. **最小权限原则**：管理员账号只用于管理操作，不用于日常使用
+- GitHub: [https://github.com/itrfcn/Pymusic/issues](https://github.com/itrfcn/Pymusic/issues)
 
 ---
 
-**Py Music** - 让音乐触手可及 🎵
+**注意**：本项目仅供学习和研究使用，请勿用于商业用途。请遵守网易云音乐的相关服务条款。

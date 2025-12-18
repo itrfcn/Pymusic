@@ -521,7 +521,7 @@ A: 请检查服务器资源使用情况，或者优化数据库查询。
 
 ## 🙏 鸣谢
 
-- [art-design-pro](https://github.com/Daymychen/art-design-pro) - 提供管理后台模板
+- [ArtDesignPro](https://github.com/Daymychen/art-design-pro) - 提供管理后台模板
 - [Flask](https://flask.palletsprojects.com/) - Python Web框架
 - [MySQL](https://www.mysql.com/) - 关系型数据库管理系统
 - [Vue.js](https://vuejs.org/) - 前端渐进式框架

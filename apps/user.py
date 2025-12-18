@@ -365,8 +365,8 @@ def get_playlist_detail(playlist_id):
                 else:
                     # 提取所有歌曲ID
                     song_ids = [song_info['song_id'] for song_info in songs]
-                    # 按批次处理，避免单次请求过多ID（每批最多50个）
-                    batch_size = 50
+                    # 按批次处理，避免单次请求过多ID（每批最多250个）
+                    batch_size = 250
                     all_song_details = {}
                     
                     for i in range(0, len(song_ids), batch_size):
